@@ -1,0 +1,38 @@
+{
+  "name": "@g2gdao/react-sdk",
+  "version": "1.0.0",
+  "description": "G2GDAO Multi-Chain Authentication SDK for React",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "g2gdao",
+    "web3",
+    "authentication",
+    "wallet",
+    "react",
+    "multi-chain"
+  ],
+  "author": "G2GDAO",
+  "license": "MIT",
+  "peerDependencies": {
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  },
+  "dependencies": {
+    "ethers": "^6.15.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "typescript": "^5.3.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/g2gdao/sdk"
+  }
+}

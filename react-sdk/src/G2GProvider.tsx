@@ -1,7 +1,6 @@
 // src/G2GProvider.tsx
 
 import React, { createContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { ethers } from 'ethers';
 import { G2GConfig, G2GContextValue, G2GUser, LoginOptions, WalletProvider } from './types';
 import { G2GAPI, SessionManager } from './api';
 
@@ -20,6 +19,20 @@ export const G2GProvider: React.FC<G2GProviderProps> = ({ config, children }) =>
   const [error, setError] = useState<string | null>(null);
 
   const api = new G2GAPI(config);
+
+  /**
+   * Configure session persistence on mount
+   */
+  useEffect(() => {
+    const persistence = config.sessionPersistence || 'local';
+    SessionManager.configure(persistence);
+    
+    if (persistence === 'session') {
+      console.log('🔒 Session mode: Will logout on browser close');
+    } else {
+      console.log('💾 Session mode: Will persist across browser sessions');
+    }
+  }, [config.sessionPersistence]);
 
   /**
    * Initialize - Check for existing session
@@ -83,6 +96,7 @@ export const G2GProvider: React.FC<G2GProviderProps> = ({ config, children }) =>
             setToken(session.token);
             setUser(validation.user);
             setIsAuthenticated(true);
+            console.log('✅ Session restored from storage');
           } else {
             SessionManager.clearSession();
           }

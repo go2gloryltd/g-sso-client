@@ -11,9 +11,6 @@ export class G2GAPI {
     this.apiUrl = config.apiUrl || 'http://localhost:3001';
   }
 
-  /**
-   * Get authentication challenge
-   */
   async getChallenge(address: string, chainType: string): Promise<{ message: string; nonce: string }> {
     const response = await fetch(`${this.apiUrl}/auth/challenge`, {
       method: 'POST',
@@ -34,9 +31,6 @@ export class G2GAPI {
     return response.json();
   }
 
-  /**
-   * Verify signature and get JWT token
-   */
   async verifySignature(
     address: string,
     signature: string,
@@ -62,9 +56,6 @@ export class G2GAPI {
     return response.json();
   }
 
-  /**
-   * Validate existing token
-   */
   async validateToken(token: string): Promise<{ valid: boolean; user?: any }> {
     const response = await fetch(`${this.apiUrl}/auth/validate-token`, {
       method: 'POST',
@@ -79,9 +70,6 @@ export class G2GAPI {
     return response.json();
   }
 
-  /**
-   * Get auth status
-   */
   async getStatus(token: string): Promise<{ authenticated: boolean; user?: any }> {
     const response = await fetch(`${this.apiUrl}/auth/status`, {
       method: 'GET',
@@ -97,9 +85,6 @@ export class G2GAPI {
     return response.json();
   }
 
-  /**
-   * Logout
-   */
   async logout(token: string): Promise<void> {
     await fetch(`${this.apiUrl}/auth/logout`, {
       method: 'POST',
@@ -109,9 +94,6 @@ export class G2GAPI {
     });
   }
 
-  /**
-   * Refresh token
-   */
   async refreshToken(token: string): Promise<{ token: string }> {
     const response = await fetch(`${this.apiUrl}/auth/refresh`, {
       method: 'POST',
@@ -127,9 +109,6 @@ export class G2GAPI {
     return response.json();
   }
 
-  /**
-   * OAuth redirect flow
-   */
   startOAuthFlow(): void {
     const params = new URLSearchParams({
       response_type: 'code',
@@ -141,9 +120,6 @@ export class G2GAPI {
     window.location.href = `${this.apiUrl}/oauth/authorize?${params.toString()}`;
   }
 
-  /**
-   * Exchange OAuth code for token
-   */
   async exchangeCode(code: string): Promise<AuthResponse> {
     const response = await fetch(`${this.apiUrl}/api/v1/auth/token`, {
       method: 'POST',
@@ -177,18 +153,12 @@ export class G2GAPI {
     };
   }
 
-  /**
-   * Generate random state for OAuth
-   */
   private generateState(): string {
     const state = Math.random().toString(36).substring(7);
     sessionStorage.setItem('g2g_oauth_state', state);
     return state;
   }
 
-  /**
-   * Verify OAuth state
-   */
   verifyState(state: string): boolean {
     const storedState = sessionStorage.getItem('g2g_oauth_state');
     sessionStorage.removeItem('g2g_oauth_state');
@@ -197,17 +167,35 @@ export class G2GAPI {
 }
 
 /**
- * Session storage helper
+ * Session storage helper with configurable persistence
  */
 export class SessionManager {
   private static STORAGE_KEY = 'g2g_session';
+  private static persistence: 'local' | 'session' = 'local';
+
+  /**
+   * Configure storage type
+   * @param persistence - 'local' = persist across browser sessions, 'session' = clear on browser close
+   */
+  static configure(persistence: 'local' | 'session') {
+    this.persistence = persistence;
+    console.log(`📦 SessionManager: Using ${persistence}Storage`);
+  }
+
+  /**
+   * Get the appropriate storage based on configuration
+   */
+  private static getStorage(): Storage {
+    return this.persistence === 'session' ? sessionStorage : localStorage;
+  }
 
   static saveSession(session: G2GSession): void {
-    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(session));
+    this.getStorage().setItem(this.STORAGE_KEY, JSON.stringify(session));
+    console.log(`💾 Session saved to ${this.persistence}Storage`);
   }
 
   static getSession(): G2GSession | null {
-    const data = localStorage.getItem(this.STORAGE_KEY);
+    const data = this.getStorage().getItem(this.STORAGE_KEY);
     if (!data) return null;
 
     try {
@@ -215,6 +203,7 @@ export class SessionManager {
       
       // Check if expired
       if (new Date(session.expiresAt) < new Date()) {
+        console.log('⏰ Session expired');
         this.clearSession();
         return null;
       }
@@ -226,10 +215,18 @@ export class SessionManager {
   }
 
   static clearSession(): void {
-    localStorage.removeItem(this.STORAGE_KEY);
+    this.getStorage().removeItem(this.STORAGE_KEY);
+    console.log(`🗑️ Session cleared from ${this.persistence}Storage`);
   }
 
   static isSessionValid(): boolean {
     return this.getSession() !== null;
+  }
+
+  /**
+   * Get current persistence mode
+   */
+  static getPersistence(): 'local' | 'session' {
+    return this.persistence;
   }
 }

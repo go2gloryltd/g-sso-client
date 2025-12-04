@@ -165,10 +165,10 @@ export class G2GAPI {
  */
 export class SessionManager {
     static saveSession(session) {
-        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(session));
+        sessionStorage.setItem(this.STORAGE_KEY, JSON.stringify(session)); // Changed
     }
     static getSession() {
-        const data = localStorage.getItem(this.STORAGE_KEY);
+        const data = sessionStorage.getItem(this.STORAGE_KEY); // Changed
         if (!data)
             return null;
         try {
@@ -185,10 +185,11 @@ export class SessionManager {
         }
     }
     static clearSession() {
-        localStorage.removeItem(this.STORAGE_KEY);
+        sessionStorage.removeItem(this.STORAGE_KEY); // Changed
     }
     static isSessionValid() {
         return this.getSession() !== null;
     }
 }
+// Change from localStorage to sessionStorage
 SessionManager.STORAGE_KEY = 'g2g_session';

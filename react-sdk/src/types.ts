@@ -8,6 +8,7 @@ export interface G2GConfig {
   redirectUri?: string;
   flow?: 'redirect' | 'popup';
   chains?: ChainType[];
+  sessionPersistence?: 'local' | 'session';  // ✅ NEW: Control session behavior
 }
 
 export interface G2GUser {
@@ -30,8 +31,8 @@ export interface AuthResponse {
   token?: string;
   user?: G2GUser;
   error?: string;
-  expiresAt?: string;      // ✅ ADD THIS
-  expiresIn?: number;       // ✅ ADD THIS
+  expiresAt?: string;
+  expiresIn?: number;
 }
 
 export interface G2GContextValue {
@@ -57,7 +58,6 @@ export interface WalletProvider {
   request: (args: { method: string; params?: any[] }) => Promise<any>;
 }
 
-// ✅ ADD THIS - Extend Window interface
 declare global {
   interface Window {
     ethereum?: WalletProvider;

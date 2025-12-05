@@ -1,19 +1,18 @@
 // src/components/G2GButton.tsx
 
-import React, { ButtonHTMLAttributes } from 'react';
+import React, { useState } from 'react';
 import { useG2G } from '../useG2G';
+import { LoaderIcon } from '../icons';
 
-// ✅ FIX: Remove 'extends' and manually pick the props we need
 interface G2GButtonProps {
   onSuccess?: () => void;
-  onErrorCallback?: (error: string) => void;  // ✅ Renamed to avoid conflict
+  onErrorCallback?: (error: string) => void;
   loginText?: string;
   logoutText?: string;
   loadingText?: string;
   className?: string;
   style?: React.CSSProperties;
   disabled?: boolean;
-  onClick?: () => void;
 }
 
 export const G2GButton: React.FC<G2GButtonProps> = ({
@@ -25,20 +24,26 @@ export const G2GButton: React.FC<G2GButtonProps> = ({
   className = '',
   style,
   disabled,
-  ...props
 }) => {
-  const { isAuthenticated, loading, login, logout, error } = useG2G();
+  const { isAuthenticated, loading, logout } = useG2G();
+  const [showModal, setShowModal] = useState(false);
 
   const handleClick = async () => {
-    try {
-      if (isAuthenticated) {
+    if (isAuthenticated) {
+      try {
         await logout();
-      } else {
-        await login();
-        onSuccess?.();
+      } catch (err: any) {
+        onErrorCallback?.(err.message);
       }
-    } catch (err: any) {
-      onErrorCallback?.(err.message);
+    } else {
+      setShowModal(true);
+    }
+  };
+
+  const handleModalClose = () => {
+    setShowModal(false);
+    if (isAuthenticated) {
+      onSuccess?.();
     }
   };
 
@@ -49,14 +54,16 @@ export const G2GButton: React.FC<G2GButtonProps> = ({
       : loginText;
 
   return (
-    <button
-      onClick={handleClick}
-      disabled={loading || disabled}
-      className={`g2g-button ${className}`}
-      style={style}
-      {...props}
-    >
-      {buttonText}
-    </button>
+    <>
+      <button
+        onClick={handleClick}
+        disabled={loading || disabled}
+        className={`inline-flex items-center justify-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed ${className}`}
+        style={style}
+      >
+        {loading && <LoaderIcon size={16} />}
+        {buttonText}
+      </button>
+    </>
   );
 };

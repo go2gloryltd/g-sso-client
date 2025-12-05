@@ -1,8 +1,9 @@
 // src/G2GProvider.tsx
 
 import React, { createContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { G2GConfig, G2GContextValue, G2GUser, LoginOptions, WalletProvider } from './types';
+import { G2GConfig, G2GContextValue, G2GUser, LoginOptions, WalletProvider, WalletInfo } from './types';
 import { G2GAPI, SessionManager } from './api';
+import { detectWallets } from './wallets/detector';
 
 export const G2GContext = createContext<G2GContextValue | null>(null);
 
@@ -17,31 +18,31 @@ export const G2GProvider: React.FC<G2GProviderProps> = ({ config, children }) =>
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [wallets, setWallets] = useState<WalletInfo[]>([]);
+  const [modalOpen, setModalOpen] = useState(false);
 
   const api = new G2GAPI(config);
 
-  /**
-   * Configure session persistence on mount
-   */
   useEffect(() => {
     const persistence = config.sessionPersistence || 'local';
     SessionManager.configure(persistence);
-    
-    if (persistence === 'session') {
-      console.log('🔒 Session mode: Will logout on browser close');
-    } else {
-      console.log('💾 Session mode: Will persist across browser sessions');
-    }
   }, [config.sessionPersistence]);
 
-  /**
-   * Initialize - Check for existing session
-   */
+  useEffect(() => {
+    const loadWallets = async () => {
+      const detected = await detectWallets();
+      setWallets(detected);
+      const installedCount = detected.filter((w: WalletInfo) => w.installed).length;
+      console.log(`Detected ${installedCount} installed wallets`);
+    };
+    
+    loadWallets();
+  }, []);
+
   useEffect(() => {
     const initSession = async () => {
       setLoading(true);
 
-      // Check for OAuth callback
       const urlParams = new URLSearchParams(window.location.search);
       const code = urlParams.get('code');
       const state = urlParams.get('state');
@@ -75,7 +76,6 @@ export const G2GProvider: React.FC<G2GProviderProps> = ({ config, children }) =>
               expiresIn: 86400
             });
 
-            // Clean URL
             window.history.replaceState({}, document.title, window.location.pathname);
           }
         } catch (err: any) {
@@ -86,7 +86,6 @@ export const G2GProvider: React.FC<G2GProviderProps> = ({ config, children }) =>
         return;
       }
 
-      // Check for existing session
       const session = SessionManager.getSession();
       if (session) {
         try {
@@ -96,7 +95,6 @@ export const G2GProvider: React.FC<G2GProviderProps> = ({ config, children }) =>
             setToken(session.token);
             setUser(validation.user);
             setIsAuthenticated(true);
-            console.log('✅ Session restored from storage');
           } else {
             SessionManager.clearSession();
           }
@@ -111,9 +109,6 @@ export const G2GProvider: React.FC<G2GProviderProps> = ({ config, children }) =>
     initSession();
   }, []);
 
-  /**
-   * Login with wallet
-   */
   const login = useCallback(async (options: LoginOptions = {}) => {
     setLoading(true);
     setError(null);
@@ -121,36 +116,25 @@ export const G2GProvider: React.FC<G2GProviderProps> = ({ config, children }) =>
     try {
       const chainType = options.chainType || 'ethereum';
 
-      // OAuth redirect flow
       if (config.flow === 'redirect') {
         api.startOAuthFlow();
         return;
       }
 
-      // Popup/Modal flow (direct wallet connection)
       if (typeof window.ethereum === 'undefined') {
-        throw new Error('Wallet not detected. Please install MetaMask or another Web3 wallet.');
+        throw new Error('Wallet not detected');
       }
 
       const provider = window.ethereum as WalletProvider;
-
-      // Request wallet connection
-      const accounts = await provider.request({ 
-        method: 'eth_requestAccounts' 
-      });
-
+      const accounts = await provider.request({ method: 'eth_requestAccounts' });
       const address = accounts[0];
 
-      // Get challenge
       const { message, nonce } = await api.getChallenge(address, chainType);
-
-      // Sign message
       const signature = await provider.request({
         method: 'personal_sign',
         params: [message, address]
       });
 
-      // Verify signature
       const authResponse = await api.verifySignature(address, signature, nonce, chainType);
 
       if (authResponse.authenticated && authResponse.token && authResponse.user) {
@@ -164,12 +148,8 @@ export const G2GProvider: React.FC<G2GProviderProps> = ({ config, children }) =>
           expiresAt: authResponse.expiresAt || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
           expiresIn: authResponse.expiresIn || 86400
         });
-      } else {
-        throw new Error('Authentication failed');
       }
-
     } catch (err: any) {
-      console.error('Login error:', err);
       setError(err.message || 'Login failed');
       throw err;
     } finally {
@@ -177,16 +157,10 @@ export const G2GProvider: React.FC<G2GProviderProps> = ({ config, children }) =>
     }
   }, [config]);
 
-  /**
-   * Logout
-   */
   const logout = useCallback(async () => {
     setLoading(true);
-
     try {
-      if (token) {
-        await api.logout(token);
-      }
+      if (token) await api.logout(token);
     } catch (err) {
       console.error('Logout error:', err);
     } finally {
@@ -198,12 +172,9 @@ export const G2GProvider: React.FC<G2GProviderProps> = ({ config, children }) =>
     }
   }, [token]);
 
-  /**
-   * Get current session
-   */
-  const getSession = useCallback(() => {
-    return SessionManager.getSession();
-  }, []);
+  const getSession = useCallback(() => SessionManager.getSession(), []);
+  const openModal = useCallback(() => setModalOpen(true), []);
+  const closeModal = useCallback(() => setModalOpen(false), []);
 
   const value: G2GContextValue = {
     isAuthenticated,
@@ -211,9 +182,13 @@ export const G2GProvider: React.FC<G2GProviderProps> = ({ config, children }) =>
     token,
     loading,
     error,
+    config,
+    wallets,
     login,
     logout,
-    getSession
+    getSession,
+    openModal,
+    closeModal
   };
 
   return (

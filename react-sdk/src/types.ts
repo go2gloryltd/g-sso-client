@@ -1,5 +1,8 @@
 // src/types.ts
+
 export type ChainType = 'ethereum' | 'solana' | 'bitcoin' | 'polkadot' | 'cardano';
+export type Platform = 'desktop' | 'mobile' | 'both';
+export type SessionPersistence = 'local' | 'session' | 'memory';
 
 export interface G2GConfig {
   clientId: string;
@@ -8,7 +11,7 @@ export interface G2GConfig {
   redirectUri?: string;
   flow?: 'redirect' | 'popup';
   chains?: ChainType[];
-  sessionPersistence?: 'local' | 'session';  // ✅ NEW: Control session behavior
+  sessionPersistence?: SessionPersistence;
 }
 
 export interface G2GUser {
@@ -35,15 +38,34 @@ export interface AuthResponse {
   expiresIn?: number;
 }
 
+export interface WalletInfo {
+  id: string;
+  name: string;
+  icon: string;
+  chain: ChainType;
+  platforms: Platform;
+  color: string;
+  downloadUrl?: string;
+  providerKey: string;
+  description: string;
+  popular?: boolean;
+  installed: boolean;
+  provider?: any;
+}
+
 export interface G2GContextValue {
   isAuthenticated: boolean;
   user: G2GUser | null;
   token: string | null;
   loading: boolean;
   error: string | null;
+  config: G2GConfig;
+  wallets: WalletInfo[];
   login: (options?: LoginOptions) => Promise<void>;
   logout: () => Promise<void>;
   getSession: () => G2GSession | null;
+  openModal: () => void;
+  closeModal: () => void;
 }
 
 export interface LoginOptions {

@@ -15,44 +15,19 @@ export class G2GAPI {
     const response = await fetch(`${this.apiUrl}/auth/challenge`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        address,
-        chainType,
-        client_id: this.config.clientId,
-        redirect_uri: this.config.redirectUri
-      })
+      body: JSON.stringify({ address, chainType, client_id: this.config.clientId, redirect_uri: this.config.redirectUri })
     });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to get challenge');
-    }
-
+    if (!response.ok) throw new Error((await response.json()).error || 'Failed to get challenge');
     return response.json();
   }
 
-  async verifySignature(
-    address: string,
-    signature: string,
-    nonce: string,
-    chainType: string
-  ): Promise<AuthResponse> {
+  async verifySignature(address: string, signature: string, nonce: string, chainType: string): Promise<AuthResponse> {
     const response = await fetch(`${this.apiUrl}/auth/verify`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        address,
-        signature,
-        nonce,
-        chainType
-      })
+      body: JSON.stringify({ address, signature, nonce, chainType })
     });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Verification failed');
-    }
-
+    if (!response.ok) throw new Error((await response.json()).error || 'Verification failed');
     return response.json();
   }
 
@@ -62,50 +37,29 @@ export class G2GAPI {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token })
     });
-
-    if (!response.ok) {
-      return { valid: false };
-    }
-
-    return response.json();
+    return response.ok ? response.json() : { valid: false };
   }
 
   async getStatus(token: string): Promise<{ authenticated: boolean; user?: any }> {
     const response = await fetch(`${this.apiUrl}/auth/status`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
+      headers: { 'Authorization': `Bearer ${token}` }
     });
-
-    if (!response.ok) {
-      return { authenticated: false };
-    }
-
-    return response.json();
+    return response.ok ? response.json() : { authenticated: false };
   }
 
   async logout(token: string): Promise<void> {
     await fetch(`${this.apiUrl}/auth/logout`, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
+      headers: { 'Authorization': `Bearer ${token}` }
     });
   }
 
   async refreshToken(token: string): Promise<{ token: string }> {
     const response = await fetch(`${this.apiUrl}/auth/refresh`, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
+      headers: { 'Authorization': `Bearer ${token}` }
     });
-
-    if (!response.ok) {
-      throw new Error('Token refresh failed');
-    }
-
+    if (!response.ok) throw new Error('Token refresh failed');
     return response.json();
   }
 
@@ -116,7 +70,6 @@ export class G2GAPI {
       redirect_uri: this.config.redirectUri || window.location.origin + '/callback',
       state: this.generateState()
     });
-
     window.location.href = `${this.apiUrl}/oauth/authorize?${params.toString()}`;
   }
 
@@ -132,14 +85,8 @@ export class G2GAPI {
         redirect_uri: this.config.redirectUri || window.location.origin + '/callback'
       })
     });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error_description || 'Token exchange failed');
-    }
-
+    if (!response.ok) throw new Error((await response.json()).error_description || 'Token exchange failed');
     const data = await response.json();
-    
     return {
       authenticated: true,
       token: data.access_token,
@@ -166,48 +113,37 @@ export class G2GAPI {
   }
 }
 
-/**
- * Session storage helper with configurable persistence
- */
 export class SessionManager {
   private static STORAGE_KEY = 'g2g_session';
-  private static persistence: 'local' | 'session' = 'local';
+  private static storageType: 'local' | 'session' | 'memory' = 'local';
+  private static memoryStorage: G2GSession | null = null;
 
-  /**
-   * Configure storage type
-   * @param persistence - 'local' = persist across browser sessions, 'session' = clear on browser close
-   */
-  static configure(persistence: 'local' | 'session') {
-    this.persistence = persistence;
-    console.log(`📦 SessionManager: Using ${persistence}Storage`);
-  }
-
-  /**
-   * Get the appropriate storage based on configuration
-   */
-  private static getStorage(): Storage {
-    return this.persistence === 'session' ? sessionStorage : localStorage;
+  static configure(type: 'local' | 'session' | 'memory') {
+    this.storageType = type;
   }
 
   static saveSession(session: G2GSession): void {
-    this.getStorage().setItem(this.STORAGE_KEY, JSON.stringify(session));
-    console.log(`💾 Session saved to ${this.persistence}Storage`);
+    if (this.storageType === 'memory') {
+      this.memoryStorage = session;
+      return;
+    }
+    const storage = this.storageType === 'local' ? localStorage : sessionStorage;
+    storage.setItem(this.STORAGE_KEY, JSON.stringify(session));
   }
 
   static getSession(): G2GSession | null {
-    const data = this.getStorage().getItem(this.STORAGE_KEY);
+    if (this.storageType === 'memory') {
+      return this.memoryStorage;
+    }
+    const storage = this.storageType === 'local' ? localStorage : sessionStorage;
+    const data = storage.getItem(this.STORAGE_KEY);
     if (!data) return null;
-
     try {
       const session: G2GSession = JSON.parse(data);
-      
-      // Check if expired
       if (new Date(session.expiresAt) < new Date()) {
-        console.log('⏰ Session expired');
         this.clearSession();
         return null;
       }
-
       return session;
     } catch {
       return null;
@@ -215,18 +151,15 @@ export class SessionManager {
   }
 
   static clearSession(): void {
-    this.getStorage().removeItem(this.STORAGE_KEY);
-    console.log(`🗑️ Session cleared from ${this.persistence}Storage`);
+    if (this.storageType === 'memory') {
+      this.memoryStorage = null;
+      return;
+    }
+    const storage = this.storageType === 'local' ? localStorage : sessionStorage;
+    storage.removeItem(this.STORAGE_KEY);
   }
 
   static isSessionValid(): boolean {
     return this.getSession() !== null;
-  }
-
-  /**
-   * Get current persistence mode
-   */
-  static getPersistence(): 'local' | 'session' {
-    return this.persistence;
   }
 }

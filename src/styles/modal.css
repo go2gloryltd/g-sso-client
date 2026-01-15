@@ -1,0 +1,474 @@
+/* src/styles/modal.css */
+
+.g2g-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: fadeIn 0.2s ease;
+}
+
+.g2g-modal {
+  background: white;
+  border-radius: 16px;
+  width: 90%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.3s ease;
+  position: relative;
+}
+
+.g2g-modal-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: transparent;
+  border: none;
+  font-size: 24px;
+  color: #666;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: all 0.2s;
+  z-index: 10;
+}
+
+.g2g-modal-close:hover {
+  background: #f0f0f0;
+  color: #000;
+}
+
+.g2g-modal-header {
+  padding: 24px;
+  border-bottom: 1px solid #e5e5e5;
+  text-align: center;
+}
+
+.g2g-modal-header h2 {
+  margin: 0 0 8px 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #111;
+}
+
+.g2g-modal-header p {
+  margin: 0;
+  font-size: 13px;
+  color: #666;
+}
+
+.g2g-modal-body {
+  padding: 20px;
+  max-height: calc(90vh - 100px);
+  overflow-y: auto;
+}
+
+/* Loading State */
+.g2g-loading {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.g2g-spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid #f0f0f0;
+  border-top-color: #06b6d4;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 16px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.g2g-loading p {
+  margin: 0;
+  color: #666;
+  font-size: 14px;
+}
+
+/* QR Section */
+.g2g-qr-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.g2g-qr-code {
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.1) 0%, transparent 100%);
+  border: 2px solid rgba(6, 182, 212, 0.2);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.g2g-qr-code img {
+  width: 100%;
+  max-width: 180px;
+  height: auto;
+  border-radius: 8px;
+}
+
+.g2g-ready-wallets h3 {
+  margin: 0 0 12px 0;
+  font-size: 11px;
+  font-weight: 700;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.g2g-wallet-btn {
+  width: 100%;
+  padding: 12px;
+  background: #f9f9f9;
+  border: 1px solid #e5e5e5;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 8px;
+}
+
+.g2g-wallet-btn:hover {
+  background: white;
+  border-color: #06b6d4;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(6, 182, 212, 0.15);
+}
+
+.g2g-wallet-btn .wallet-icon {
+  font-size: 24px;
+}
+
+.g2g-wallet-btn .wallet-info {
+  flex: 1;
+  text-align: left;
+}
+
+.g2g-wallet-btn .wallet-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: #111;
+  margin-bottom: 2px;
+}
+
+.g2g-wallet-btn .wallet-chain {
+  font-size: 10px;
+  color: #666;
+  text-transform: capitalize;
+}
+
+.g2g-wallet-btn .wallet-check {
+  width: 20px;
+  height: 20px;
+  background: #06b6d4;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+}
+
+/* Show All Button */
+.g2g-show-all-btn {
+  width: 100%;
+  padding: 10px;
+  background: transparent;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  color: #666;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.g2g-show-all-btn:hover {
+  background: #f9f9f9;
+  border-color: #06b6d4;
+  color: #06b6d4;
+}
+
+/* All Wallets Section */
+.g2g-all-wallets {
+  border-top: 1px solid #e5e5e5;
+  padding-top: 16px;
+  margin-top: 16px;
+}
+
+.g2g-search {
+  margin-bottom: 12px;
+}
+
+.g2g-search input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  font-size: 13px;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.g2g-search input:focus {
+  border-color: #06b6d4;
+  box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.1);
+}
+
+.g2g-chain-filters {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.g2g-chain-filters button {
+  padding: 6px 12px;
+  background: white;
+  border: 1px solid #e5e5e5;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+  color: #666;
+}
+
+.g2g-chain-filters button:hover {
+  border-color: #06b6d4;
+  color: #06b6d4;
+}
+
+.g2g-chain-filters button.active {
+  background: #06b6d4;
+  border-color: #06b6d4;
+  color: white;
+}
+
+.g2g-wallet-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.g2g-wallet-item {
+  width: 100%;
+  padding: 12px;
+  background: white;
+  border: 1px solid #e5e5e5;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 8px;
+}
+
+.g2g-wallet-item:hover {
+  border-color: #06b6d4;
+  transform: translateX(4px);
+  box-shadow: 0 2px 8px rgba(6, 182, 212, 0.1);
+}
+
+.g2g-wallet-item .wallet-icon {
+  font-size: 28px;
+}
+
+.g2g-wallet-item .wallet-info {
+  flex: 1;
+  text-align: left;
+}
+
+.g2g-wallet-item .wallet-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #111;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.g2g-wallet-item .installed-badge {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  background: #10b981;
+  color: white;
+  border-radius: 50%;
+  font-size: 10px;
+  line-height: 16px;
+  text-align: center;
+}
+
+.g2g-wallet-item .wallet-desc {
+  font-size: 11px;
+  color: #666;
+}
+
+/* Success State */
+.g2g-success {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.g2g-success .success-icon {
+  width: 64px;
+  height: 64px;
+  background: #10b981;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  margin: 0 auto 16px;
+}
+
+.g2g-success h3 {
+  margin: 0 0 12px 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #111;
+}
+
+.g2g-success .success-address {
+  font-family: monospace;
+  font-size: 13px;
+  color: #666;
+  padding: 10px;
+  background: #f0fdf4;
+  border: 1px solid #d1fae5;
+  border-radius: 8px;
+  margin: 0;
+}
+
+/* Error State */
+.g2g-error {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.g2g-error .error-icon {
+  width: 64px;
+  height: 64px;
+  background: #ef4444;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  margin: 0 auto 16px;
+}
+
+.g2g-error h3 {
+  margin: 0 0 12px 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #111;
+}
+
+.g2g-error p {
+  color: #666;
+  font-size: 14px;
+  margin: 0 0 20px 0;
+}
+
+.g2g-error button {
+  padding: 10px 24px;
+  background: #06b6d4;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.g2g-error button:hover {
+  background: #0891b2;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Scrollbar */
+.g2g-modal-body::-webkit-scrollbar,
+.g2g-wallet-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.g2g-modal-body::-webkit-scrollbar-track,
+.g2g-wallet-list::-webkit-scrollbar-track {
+  background: #f0f0f0;
+  border-radius: 3px;
+}
+
+.g2g-modal-body::-webkit-scrollbar-thumb,
+.g2g-wallet-list::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 3px;
+}
+
+.g2g-modal-body::-webkit-scrollbar-thumb:hover,
+.g2g-wallet-list::-webkit-scrollbar-thumb:hover {
+  background: #999;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .g2g-qr-section {
+    grid-template-columns: 1fr;
+  }
+  
+  .g2g-modal {
+    width: 95%;
+    max-height: 95vh;
+  }
+}

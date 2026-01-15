@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mobile Auth - G2GDAO</title>
+  
+  <!-- React (Production) -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  
+  <!-- Your SDK Bundle -->
+  <script src="../dist/g2gdao.bundle.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script>
+    // Debug
+    console.log('=== Mobile Auth Page ===');
+    console.log('Available SDK exports:', Object.keys(window.G2GDAO || {}));
+    
+    // Get MobileAuth component
+    const MobileAuth = window.G2GDAO?.MobileAuth;
+
+    function App() {
+      if (!MobileAuth) {
+        return React.createElement('div', { 
+          style: { 
+            padding: '40px', 
+            textAlign: 'center',
+            fontFamily: 'sans-serif' 
+          } 
+        },
+          React.createElement('h1', null, '⚠️ MobileAuth component not found'),
+          React.createElement('p', null, 'Check if SDK is built correctly'),
+          React.createElement('pre', { 
+            style: { 
+              background: '#f0f0f0', 
+              padding: '20px', 
+              marginTop: '20px',
+              textAlign: 'left'
+            } 
+          }, 
+            JSON.stringify(Object.keys(window.G2GDAO || {}), null, 2)
+          )
+        );
+      }
+
+      return React.createElement(MobileAuth, {
+        apiUrl: 'http://localhost:3001',
+        onSuccess: (address, chainType) => {
+          console.log('✅ Mobile auth success:', { address, chainType });
+        },
+        onError: (error) => {
+          console.error('❌ Mobile auth error:', error);
+        }
+      });
+    }
+
+    // Render
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(React.createElement(App));
+  </script>
+</body>
+</html>

@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>G2GDAO SDK Test - Simple</title>
+  
+  <!-- React (Production) -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  
+  <!-- Your SDK Bundle -->
+  <script src="../dist/g2gdao.bundle.js"></script>
+  
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .demo-container {
+      text-align: center;
+      color: white;
+      max-width: 600px;
+      width: 100%;
+    }
+    .demo-container h1 {
+      font-size: 48px;
+      margin-bottom: 16px;
+      background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .demo-container p {
+      font-size: 18px;
+      color: #cbd5e1;
+      margin-bottom: 32px;
+    }
+    .user-info {
+      margin-top: 32px;
+      padding: 24px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    .user-info h3 {
+      margin-bottom: 16px;
+      color: #06b6d4;
+      font-size: 20px;
+    }
+    .user-detail {
+      margin: 12px 0;
+      text-align: left;
+    }
+    .user-detail strong {
+      color: #94a3b8;
+      display: block;
+      font-size: 12px;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .user-address {
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      color: #e2e8f0;
+      word-break: break-all;
+      background: rgba(0, 0, 0, 0.3);
+      padding: 8px;
+      border-radius: 6px;
+    }
+    .chain-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      background: rgba(6, 182, 212, 0.2);
+      color: #06b6d4;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .disconnect-btn {
+      margin-top: 20px;
+      padding: 10px 24px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #ef4444;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid #ef4444;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .disconnect-btn:hover {
+      background: rgba(239, 68, 68, 0.2);
+    }
+    .debug-info {
+      margin-top: 20px;
+      padding: 12px;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 8px;
+      font-size: 12px;
+      text-align: left;
+      color: #94a3b8;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script>
+    // Debug: Check what's available
+    console.log('=== G2GDAO SDK Debug ===');
+    console.log('window.G2GDAO:', window.G2GDAO);
+    console.log('Available exports:', Object.keys(window.G2GDAO || {}));
+
+    const { useState, useEffect } = React;
+    
+    // Get ConnectWallet component from SDK
+    const ConnectWallet = window.G2GDAO?.ConnectWallet;
+
+    function App() {
+      const [user, setUser] = useState(null);
+
+      // Check if SDK loaded correctly
+      useEffect(() => {
+        if (!ConnectWallet) {
+          console.error('❌ ConnectWallet not found in window.G2GDAO');
+          console.log('Available:', window.G2GDAO);
+        } else {
+          console.log('✅ SDK loaded successfully');
+        }
+      }, []);
+
+      const handleConnect = (result) => {
+        console.log('✅ Connected:', result);
+        setUser({
+          address: result.address,
+          chainType: result.chainType,
+          token: result.token
+        });
+        localStorage.setItem('g2gdao_token', result.token);
+      };
+
+      const handleError = (error) => {
+        console.error('❌ Connection error:', error);
+        alert('Connection failed: ' + error.message);
+      };
+
+      const handleDisconnect = () => {
+        setUser(null);
+        localStorage.removeItem('g2gdao_token');
+        console.log('👋 Disconnected');
+      };
+
+      // If SDK not loaded, show error
+      if (!ConnectWallet) {
+        return React.createElement('div', { className: 'demo-container' },
+          React.createElement('h1', null, '⚠️ SDK Not Loaded'),
+          React.createElement('p', null, 'Check console for details'),
+          React.createElement('div', { className: 'debug-info' },
+            React.createElement('pre', null, 
+              'window.G2GDAO: ' + JSON.stringify(Object.keys(window.G2GDAO || {}), null, 2)
+            )
+          )
+        );
+      }
+
+      return React.createElement('div', { className: 'demo-container' },
+        React.createElement('h1', null, '🔐 G2GDAO SDK Test'),
+        React.createElement('p', null, 'Multi-chain wallet authentication'),
+
+        !user 
+          ? React.createElement(ConnectWallet, {
+              apiUrl: 'http://localhost:3001',
+              buttonText: 'Connect Wallet',
+              onConnect: handleConnect,
+              onError: handleError
+            })
+          : React.createElement('div', { className: 'user-info' },
+              React.createElement('h3', null, '✅ Connected'),
+              React.createElement('div', { className: 'user-detail' },
+                React.createElement('strong', null, 'Wallet Address'),
+                React.createElement('div', { className: 'user-address' }, user.address)
+              ),
+              React.createElement('div', { className: 'user-detail' },
+                React.createElement('strong', null, 'Chain'),
+                React.createElement('span', { className: 'chain-badge' }, user.chainType)
+              ),
+              React.createElement('div', { className: 'user-detail' },
+                React.createElement('strong', null, 'Token'),
+                React.createElement('div', { className: 'user-address' }, 
+                  user.token.substring(0, 50) + '...'
+                )
+              ),
+              React.createElement('button', {
+                className: 'disconnect-btn',
+                onClick: handleDisconnect
+              }, 'Disconnect')
+            )
+      );
+    }
+
+    // Render app
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(React.createElement(App));
+  </script>
+</body>
+</html>

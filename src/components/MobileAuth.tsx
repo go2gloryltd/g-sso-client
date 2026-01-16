@@ -4,7 +4,8 @@ import { WalletDetector } from '../core/WalletDetector';
 import { WalletConnector } from '../core/WalletConnector';
 import type { WalletInfo, ChainType } from '../types';
 
-interface MobileAuthProps {
+// ✅ EXPORT the props interface
+export interface MobileAuthProps {
   /** Backend API URL */
   apiUrl: string;
   

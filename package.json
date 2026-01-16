@@ -1,23 +1,80 @@
 {
-  "name": "gsso-sdk",
+  "name": "@gsso/sdk",
   "version": "1.0.0",
+  "description": "G-SSO Multi-Chain Wallet Authentication SDK",
+  "type": "module",
   "main": "dist/index.js",
   "module": "dist/index.esm.js",
   "types": "dist/index.d.ts",
-  "files": ["dist"],
+  "browser": "dist/gsso.umd.js",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "import": "./dist/index.esm.js"
+    },
+    "./react": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/react.js",
+      "import": "./dist/react.esm.js"
+    },
+    "./vue": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/vue.js",
+      "import": "./dist/vue.esm.js"
+    }
+  },
   "scripts": {
+    "clean": "node -e \"require('fs').rmSync('dist', {recursive: true, force: true})\"",
     "build": "rollup -c",
+    "build:prod": "npm run clean && npm run build",
     "dev": "rollup -c -w",
-    "clean": "rm -rf dist"
+    "test:demo": "npx serve . -p 3000",
+    "prepublishOnly": "npm run build:prod"
+  },
+  "keywords": [
+    "gsso",
+    "g-sso",
+    "web3",
+    "wallet",
+    "authentication",
+    "multi-chain",
+    "ethereum",
+    "solana",
+    "bitcoin",
+    "polkadot",
+    "cardano",
+    "sso",
+    "single-sign-on"
+  ],
+  "author": "G-SSO",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gsso/sdk"
   },
   "peerDependencies": {
     "react": "^18.0.0",
     "react-dom": "^18.0.0"
   },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^25.0.0",
     "@rollup/plugin-node-resolve": "^15.0.0",
     "@rollup/plugin-typescript": "^11.0.0",
+    "@types/react": "^18.0.0",
+    "@types/react-dom": "^18.0.0",
     "rollup": "^3.0.0",
     "typescript": "^5.0.0"
   }

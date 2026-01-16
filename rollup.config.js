@@ -1,10 +1,10 @@
-// rollup.config.js - Fixed to create g2gdao.bundle.js
+// rollup.config.js - Multi-format build configuration
 import typescript from '@rollup/plugin-typescript';
 import resolve from '@rollup/plugin-node-resolve';
 import commonjs from '@rollup/plugin-commonjs';
 
 export default [
-  // ES Module build
+  // 1. ES Module build (for modern bundlers)
   {
     input: 'src/index.ts',
     external: ['react', 'react-dom'],
@@ -25,7 +25,7 @@ export default [
     ]
   },
 
-  // CommonJS build
+  // 2. CommonJS build (for Node.js)
   {
     input: 'src/index.ts',
     external: ['react', 'react-dom'],
@@ -38,36 +38,95 @@ export default [
     plugins: [
       resolve(),
       commonjs(),
-      typescript({
-        tsconfig: './tsconfig.json'
-      })
+      typescript({ tsconfig: './tsconfig.json' })
     ]
   },
 
-  // UMD build for browser - THIS CREATES g2gdao.bundle.js
+  // 3. UMD build (for browser <script> tags) ← FIXED
   {
-    input: 'src/index.ts',
+    input: 'src/umd.ts', // ← Use dedicated UMD entry point
     external: ['react', 'react-dom'],
     output: {
-      file: 'dist/g2gdao.bundle.js',  // <-- Make sure this matches your HTML
+      file: 'dist/gsso.umd.js',
       format: 'umd',
-      name: 'G2GDAO',
+      name: 'GSSO', // This creates window.GSSO
       sourcemap: true,
       globals: {
         react: 'React',
         'react-dom': 'ReactDOM'
       },
-      exports: 'named'  // CRITICAL: Exports all named exports
+      exports: 'default' // ← Export the default object
     },
     plugins: [
-      resolve({
-        browser: true,  // Use browser-compatible versions
-        preferBuiltins: false
-      }),
+      resolve({ browser: true, preferBuiltins: false }),
       commonjs(),
-      typescript({
-        tsconfig: './tsconfig.json'
-      })
+      typescript({ tsconfig: './tsconfig.json' })
+    ]
+  },
+
+  // 4. React wrapper - ESM
+  {
+    input: 'src/react.tsx',
+    external: ['react', 'react-dom'],
+    output: {
+      file: 'dist/react.esm.js',
+      format: 'esm',
+      sourcemap: true
+    },
+    plugins: [
+      resolve(),
+      commonjs(),
+      typescript({ tsconfig: './tsconfig.json' })
+    ]
+  },
+
+  // 5. React wrapper - CJS
+  {
+    input: 'src/react.tsx',
+    external: ['react', 'react-dom'],
+    output: {
+      file: 'dist/react.js',
+      format: 'cjs',
+      sourcemap: true,
+      exports: 'named'
+    },
+    plugins: [
+      resolve(),
+      commonjs(),
+      typescript({ tsconfig: './tsconfig.json' })
+    ]
+  },
+
+  // 6. Vue wrapper - ESM
+  {
+    input: 'src/vue.ts',
+    external: ['vue'],
+    output: {
+      file: 'dist/vue.esm.js',
+      format: 'esm',
+      sourcemap: true
+    },
+    plugins: [
+      resolve(),
+      commonjs(),
+      typescript({ tsconfig: './tsconfig.json' })
+    ]
+  },
+
+  // 7. Vue wrapper - CJS
+  {
+    input: 'src/vue.ts',
+    external: ['vue'],
+    output: {
+      file: 'dist/vue.js',
+      format: 'cjs',
+      sourcemap: true,
+      exports: 'named'
+    },
+    plugins: [
+      resolve(),
+      commonjs(),
+      typescript({ tsconfig: './tsconfig.json' })
     ]
   }
 ];

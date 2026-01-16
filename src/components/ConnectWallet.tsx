@@ -3,7 +3,8 @@ import React, { useState } from 'react';
 import { WalletAuthModal } from './WalletAuthModal';
 import type { ChainType } from '../types';
 
-interface ConnectWalletProps {
+// ✅ EXPORT the props interface
+export interface ConnectWalletProps {
   /** Backend API URL (e.g., https://g-sso.com or http://localhost:3001) */
   apiUrl: string;
   

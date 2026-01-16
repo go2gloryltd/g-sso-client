@@ -1,448 +1,537 @@
-// src/components/WalletAuthModal.tsx - Premium Design
+// src/components/WalletAuthModal.tsx - FINAL CORRECT VERSION
 import React, { useState, useEffect } from 'react';
 import { WalletDetector } from '../core/WalletDetector';
 import { WalletConnector } from '../core/WalletConnector';
 import type { WalletInfo, ChainType } from '../types';
 
-interface WalletAuthModalProps {
+export interface WalletAuthModalProps {
   apiUrl: string;
+  clientId?: string;
+  clientSecret?: string;
   open: boolean;
   onClose: () => void;
   onAuthenticated?: (address: string, chainType: ChainType, token: string) => void;
   onError?: (error: Error) => void;
 }
 
-type ConnectionState = 'loading' | 'qr' | 'connecting' | 'signing' | 'success' | 'error';
+// ============================================================================
+// API CLIENT
+// ============================================================================
+class AuthApiClient {
+  constructor(
+    private baseUrl: string,
+    private clientId: string = '',
+    private clientSecret: string = ''
+  ) {}
 
-interface QRSession {
-  sessionId: string;
-  expiresAt: string;
-  status: 'pending' | 'completed' | 'expired';
-}
+  private headers(): Record<string, string> {
+    const h: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (this.clientId) h['X-Client-ID'] = this.clientId;
+    if (this.clientSecret) h['X-Client-Secret'] = this.clientSecret;
+    return h;
+  }
 
-const CHAIN_INFO = {
-  ethereum: { name: 'ETH', icon: '⟠', color: '#627EEA' },
-  solana: { name: 'SOL', icon: '◎', color: '#14F195' },
-  bitcoin: { name: 'BTC', icon: '₿', color: '#F7931A' },
-  polkadot: { name: 'DOT', icon: '🔴', color: '#E6007A' },
-  cardano: { name: 'ADA', icon: '₳', color: '#0033AD' }
-};
+  async post(endpoint: string, data: any): Promise<any> {
+    const body = { ...data };
+    if (this.clientId) body.client_id = this.clientId;
+    
+    const res = await fetch(`${this.baseUrl}${endpoint}`, {
+      method: 'POST',
+      headers: this.headers(),
+      body: JSON.stringify(body)
+    });
+    
+    if (!res.ok) throw new Error(`API Error: ${res.status}`);
+    return res.json();
+  }
 
-// Premium styles with modern design
-if (typeof document !== 'undefined') {
-  const styleId = 'g2g-modal-styles-premium';
-  if (!document.getElementById(styleId)) {
-    const styleEl = document.createElement('style');
-    styleEl.id = styleId;
-    styleEl.textContent = `
-      .g2g-modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.75);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;z-index:9999;animation:fadeIn 0.2s;padding:16px}
-      .g2g-modal{background:#fff;border-radius:24px;width:100%;max-width:900px;max-height:90vh;overflow:hidden;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);animation:slideUp 0.3s;position:relative}
-      .g2g-modal-close{position:absolute;top:20px;right:20px;background:rgba(0,0,0,0.05);border:none;font-size:20px;color:#666;cursor:pointer;width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:50%;transition:all 0.2s;z-index:10}
-      .g2g-modal-close:hover{background:rgba(0,0,0,0.1);transform:rotate(90deg);color:#000}
-      .g2g-modal-header{padding:32px 32px 24px 32px;text-align:center;border-bottom:1px solid #f0f0f0}
-      .g2g-modal-header h2{margin:0 0 8px 0;font-size:28px;font-weight:700;color:#111;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-      .g2g-modal-header p{margin:0;font-size:14px;color:#666}
-      .g2g-modal-body{padding:32px;max-height:calc(90vh - 120px);overflow-y:auto}
-      .g2g-loading{text-align:center;padding:60px 20px}
-      .g2g-spinner{width:56px;height:56px;border:5px solid #f0f0f0;border-top-color:#667eea;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 20px}
-      @keyframes spin{to{transform:rotate(360deg)}}
-      .g2g-loading p{margin:0;color:#666;font-size:16px;font-weight:500}
-      .g2g-qr-section{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px}
-      .g2g-qr-wrapper{background:linear-gradient(135deg,#667eea15 0%,#764ba215 100%);border:2px solid #667eea30;border-radius:20px;padding:24px;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:300px}
-      .g2g-qr-code{position:relative;padding:16px;border-radius:16px;background:#fff;box-shadow:0 10px 25px rgba(102,126,234,0.15)}
-      .g2g-qr-code img{display:block;border-radius:12px;width:200px;height:200px}
-      .g2g-qr-logo{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;padding:8px;border-radius:50%;box-shadow:0 4px 12px rgba(0,0,0,0.15);width:56px;height:56px;display:flex;align-items:center;justify-content:center}
-      .g2g-qr-logo img{width:40px;height:40px;border-radius:50%}
-      .g2g-qr-text{text-align:center;margin-top:16px;font-size:13px;color:#666;font-weight:500}
-      .g2g-backend-error{background:#fee;border:2px solid #fcc;color:#c00;padding:12px;border-radius:12px;font-size:12px;margin-top:12px;text-align:center;font-weight:500}
-      .g2g-ready-section{background:#fff;border-radius:16px;padding:20px;border:2px solid #f0f0f0}
-      .g2g-ready-section h3{margin:0 0 16px 0;font-size:11px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:1px}
-      .g2g-ready-wallet{width:100%;padding:14px 16px;background:#f9f9f9;border:2px solid #f0f0f0;border-radius:12px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:all 0.2s;margin-bottom:10px;text-align:left}
-      .g2g-ready-wallet:hover{background:#fff;border-color:#667eea;transform:translateX(4px);box-shadow:0 4px 12px rgba(102,126,234,0.15)}
-      .g2g-ready-wallet .wallet-icon{font-size:28px}
-      .g2g-ready-wallet .wallet-info{flex:1}
-      .g2g-ready-wallet .wallet-name{font-size:14px;font-weight:600;color:#111;margin-bottom:3px}
-      .g2g-ready-wallet .wallet-chain{font-size:11px;color:#666;text-transform:capitalize}
-      .g2g-ready-wallet .wallet-check{width:24px;height:24px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;box-shadow:0 2px 8px rgba(16,185,129,0.3)}
-      .g2g-all-wallets-toggle{width:100%;padding:14px;background:#fff;border:2px solid #f0f0f0;border-radius:12px;color:#667eea;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s;margin-top:12px}
-      .g2g-all-wallets-toggle:hover{background:#667eea;border-color:#667eea;color:#fff;transform:translateY(-2px);box-shadow:0 4px 12px rgba(102,126,234,0.25)}
-      .g2g-all-wallets{border-top:2px solid #f0f0f0;padding-top:24px;margin-top:24px}
-      .g2g-all-wallets-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
-      .g2g-all-wallets-title{font-size:12px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:1px}
-      .g2g-hide-btn{padding:8px 16px;background:#f9f9f9;border:2px solid #f0f0f0;border-radius:10px;font-size:12px;color:#666;cursor:pointer;transition:all 0.2s;font-weight:600}
-      .g2g-hide-btn:hover{background:#667eea;border-color:#667eea;color:#fff}
-      .g2g-search{margin-bottom:16px}
-      .g2g-search input{width:100%;padding:14px 16px;border:2px solid #f0f0f0;border-radius:12px;font-size:14px;outline:none;transition:all 0.2s;background:#f9f9f9}
-      .g2g-search input:focus{border-color:#667eea;box-shadow:0 0 0 4px rgba(102,126,234,0.1);background:#fff}
-      .g2g-chain-filters{display:flex;gap:8px;margin-bottom:16px;overflow-x:auto;padding-bottom:4px}
-      .g2g-chain-filters button{padding:8px 16px;background:#fff;border:2px solid #f0f0f0;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;transition:all 0.2s;color:#666}
-      .g2g-chain-filters button:hover{border-color:#667eea;color:#667eea;transform:translateY(-2px)}
-      .g2g-chain-filters button.active{background:linear-gradient(135deg,#667eea,#764ba2);border-color:#667eea;color:#fff;box-shadow:0 4px 12px rgba(102,126,234,0.25)}
-      .g2g-wallet-list{max-height:320px;overflow-y:auto}
-      .g2g-wallet-item{width:100%;padding:14px 16px;background:#fff;border:2px solid #f0f0f0;border-radius:12px;display:flex;align-items:center;gap:14px;cursor:pointer;transition:all 0.2s;margin-bottom:10px;text-align:left}
-      .g2g-wallet-item:hover{border-color:#667eea;transform:translateX(4px);box-shadow:0 4px 12px rgba(102,126,234,0.1)}
-      .g2g-wallet-item .wallet-icon{font-size:32px}
-      .g2g-wallet-item .wallet-info{flex:1;text-align:left}
-      .g2g-wallet-item .wallet-name{font-size:15px;font-weight:600;color:#111;margin-bottom:4px;display:flex;align-items:center;gap:8px}
-      .g2g-wallet-item .installed-badge{display:inline-block;width:20px;height:20px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border-radius:50%;font-size:11px;line-height:20px;text-align:center;font-weight:700;box-shadow:0 2px 6px rgba(16,185,129,0.3)}
-      .g2g-wallet-item .wallet-desc{font-size:12px;color:#666}
-      .g2g-success{text-align:center;padding:60px 20px}
-      .g2g-success .success-icon{width:80px;height:80px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:40px;margin:0 auto 24px;box-shadow:0 10px 25px rgba(16,185,129,0.25)}
-      .g2g-success h3{margin:0 0 16px 0;font-size:28px;font-weight:700;background:linear-gradient(135deg,#10b981,#059669);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-      .g2g-success .success-address{font-family:monospace;font-size:14px;color:#666;padding:14px;background:#f0fdf4;border:2px solid #d1fae5;border-radius:12px;margin:0;font-weight:500}
-      .g2g-error{text-align:center;padding:60px 20px}
-      .g2g-error .error-icon{width:80px;height:80px;background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:40px;margin:0 auto 24px;box-shadow:0 10px 25px rgba(239,68,68,0.25)}
-      .g2g-error h3{margin:0 0 16px 0;font-size:28px;font-weight:700;background:linear-gradient(135deg,#ef4444,#dc2626);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-      .g2g-error p{color:#666;font-size:15px;margin:0 0 24px 0}
-      .g2g-error button{padding:14px 32px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;transition:all 0.2s;box-shadow:0 4px 12px rgba(102,126,234,0.25)}
-      .g2g-error button:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(102,126,234,0.35)}
-      @keyframes fadeIn{from{opacity:0}to{opacity:1}}
-      @keyframes slideUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
-      @media (max-width:768px){.g2g-qr-section{grid-template-columns:1fr}.g2g-modal{width:95%;max-height:95vh;border-radius:20px}.g2g-modal-body{padding:24px}.g2g-qr-code img{width:180px;height:180px}.g2g-modal-header{padding:24px 24px 20px 24px}.g2g-modal-header h2{font-size:24px}}
-    `;
-    document.head.appendChild(styleEl);
+  async get(endpoint: string): Promise<any> {
+    const res = await fetch(`${this.baseUrl}${endpoint}`, {
+      headers: this.headers()
+    });
+    
+    if (!res.ok) throw new Error(`API Error: ${res.status}`);
+    return res.json();
   }
 }
 
+// ============================================================================
+// STYLES
+// ============================================================================
+if (typeof document !== 'undefined') {
+  const styleId = 'gsso-final-styles';
+  if (!document.getElementById(styleId)) {
+    const style = document.createElement('style');
+    style.id = styleId;
+    style.textContent = `
+      .gsso-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;z-index:99999;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}
+      .gsso-modal{background:#fff;border-radius:16px;width:560px;max-height:90vh;overflow:hidden;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);position:relative}
+      .gsso-close{position:absolute;top:12px;right:12px;background:transparent;border:none;font-size:20px;color:#999;cursor:pointer;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:50%;transition:all 0.2s;z-index:10}
+      .gsso-close:hover{background:rgba(0,0,0,0.05);color:#000}
+      .gsso-header{padding:20px 24px 16px;text-align:center;border-bottom:1px solid #f0f0f0}
+      .gsso-logo{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px}
+      .gsso-logo-icon{width:28px;height:28px;background:linear-gradient(135deg,#667eea,#764ba2);border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:16px}
+      .gsso-title{font-size:20px;font-weight:700;color:#111;margin:0}
+      .gsso-subtitle{font-size:12px;color:#999;margin:6px 0 16px}
+      .gsso-tabs{display:flex;gap:8px}
+      .gsso-tab{flex:1;padding:10px;background:#fff;border:2px solid #e5e5e5;border-radius:8px;font-size:14px;font-weight:600;color:#666;cursor:pointer;transition:all 0.2s;font-family:inherit}
+      .gsso-tab:hover{border-color:#667eea;color:#667eea}
+      .gsso-tab.active{background:linear-gradient(135deg,#5469e9,#6b4ba2);border-color:transparent;color:#fff;box-shadow:0 4px 12px rgba(102,126,234,0.3)}
+      .gsso-body{padding:20px;max-height:500px;overflow-y:auto}
+      .gsso-success-banner{background:linear-gradient(135deg,#d1fae5,#a7f3d0);border:2px solid #6ee7b7;border-radius:12px;padding:16px;margin-bottom:20px;display:flex;align-items:center;gap:12px}
+      .gsso-success-icon{font-size:24px;color:#059669}
+      .gsso-success-info{flex:1}
+      .gsso-success-title{font-size:16px;font-weight:700;color:#065f46;margin:0 0 4px}
+      .gsso-success-address{font-family:monospace;font-size:11px;color:#047857;margin:0 0 4px}
+      .gsso-success-chain{display:inline-block;padding:3px 10px;background:#10b981;color:#fff;border-radius:12px;font-size:10px;font-weight:700}
+      .gsso-grid{display:grid;grid-template-columns:240px 1fr;gap:16px}
+      .gsso-qr-box{background:linear-gradient(135deg,#e8f0fe,#f0e7fd);border:2px solid #d0d9f7;border-radius:12px;padding:16px;text-align:center}
+      .gsso-qr-label{font-size:11px;font-weight:700;color:#5469e9;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px}
+      .gsso-qr-code{position:relative;display:inline-block;padding:12px;background:#fff;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.1)}
+      .gsso-qr-code img{display:block;width:160px;height:160px;border-radius:8px}
+      .gsso-qr-logo{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:40px;height:40px;background:#fff;border-radius:50%;padding:6px;box-shadow:0 2px 8px rgba(0,0,0,0.15)}
+      .gsso-qr-logo img{width:100%;height:100%;border-radius:50%}
+      .gsso-ready{background:#fff;border-radius:12px}
+      .gsso-ready-title{font-size:10px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:0.5px;margin:0 0 12px}
+      .gsso-wallet-card{display:flex;align-items:center;gap:12px;padding:12px;background:#f9f9f9;border:2px solid #e5e5e5;border-radius:10px;cursor:pointer;transition:all 0.2s;margin-bottom:8px;font-family:inherit;width:100%;text-align:left}
+      .gsso-wallet-card:hover{background:#fff;border-color:#667eea;transform:translateX(2px);box-shadow:0 2px 8px rgba(102,126,234,0.15)}
+      .gsso-wallet-card:disabled{cursor:not-allowed;opacity:0.6}
+      .gsso-wallet-icon{font-size:28px;line-height:1}
+      .gsso-wallet-info{flex:1;min-width:0}
+      .gsso-wallet-name{font-size:14px;font-weight:600;color:#111;margin-bottom:2px}
+      .gsso-wallet-chain{font-size:11px;color:#666;text-transform:capitalize}
+      .gsso-wallet-check{width:20px;height:20px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700}
+      .gsso-expand{width:100%;padding:12px;background:#fff;border:2px solid #e5e5e5;border-radius:10px;font-size:13px;font-weight:600;color:#667eea;cursor:pointer;transition:all 0.2s;margin-top:12px;font-family:inherit}
+      .gsso-expand:hover{border-color:#667eea;background:#f8f9ff}
+      .gsso-all-wallets{margin-top:16px;padding-top:16px;border-top:2px solid #f0f0f0}
+      .gsso-all-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+      .gsso-all-title{font-size:10px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:0.5px}
+      .gsso-hide{padding:6px 14px;background:#f0f0f0;border:none;border-radius:6px;font-size:11px;font-weight:600;color:#666;cursor:pointer;transition:all 0.2s;font-family:inherit}
+      .gsso-hide:hover{background:#667eea;color:#fff}
+      .gsso-search{margin-bottom:12px}
+      .gsso-search input{width:100%;padding:10px 12px;border:2px solid #e5e5e5;border-radius:8px;font-size:13px;outline:none;transition:all 0.2s;font-family:inherit}
+      .gsso-search input:focus{border-color:#667eea;box-shadow:0 0 0 3px rgba(102,126,234,0.1)}
+      .gsso-filters{display:flex;gap:6px;margin-bottom:12px;overflow-x:auto}
+      .gsso-filter{padding:6px 12px;background:#fff;border:2px solid #e5e5e5;border-radius:16px;font-size:11px;font-weight:600;color:#666;cursor:pointer;white-space:nowrap;transition:all 0.2s;font-family:inherit}
+      .gsso-filter:hover{border-color:#667eea;color:#667eea}
+      .gsso-filter.active{background:linear-gradient(135deg,#667eea,#764ba2);border-color:transparent;color:#fff;box-shadow:0 2px 6px rgba(102,126,234,0.25)}
+      .gsso-wallet-list{max-height:280px;overflow-y:auto}
+      .gsso-wallet-item{display:flex;align-items:center;gap:12px;padding:12px;background:#fff;border:2px solid #e5e5e5;border-radius:10px;cursor:pointer;transition:all 0.2s;margin-bottom:8px;font-family:inherit;width:100%;text-align:left}
+      .gsso-wallet-item:hover{border-color:#667eea;transform:translateX(2px);box-shadow:0 2px 8px rgba(102,126,234,0.1)}
+      .gsso-wallet-item .gsso-wallet-icon{font-size:32px}
+      .gsso-wallet-item .gsso-wallet-name{display:flex;align-items:center;gap:6px}
+      .gsso-wallet-desc{font-size:11px;color:#666;margin-top:2px}
+      .gsso-installed{display:inline-block;width:16px;height:16px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border-radius:50%;font-size:10px;line-height:16px;text-align:center;font-weight:700}
+      .gsso-footer{text-align:center;padding:12px;border-top:1px solid #f0f0f0;font-size:11px;color:#999}
+      .gsso-footer a{color:#667eea;text-decoration:none;font-weight:600}
+      .gsso-footer a:hover{text-decoration:underline}
+      .gsso-loading{text-align:center;padding:60px 20px}
+      .gsso-spinner{width:48px;height:48px;border:4px solid #f0f0f0;border-top-color:#667eea;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 16px}
+      @keyframes spin{to{transform:rotate(360deg)}}
+      .gsso-loading-text{font-size:15px;font-weight:600;color:#333;margin:0 0 6px}
+      .gsso-loading-sub{font-size:12px;color:#999;margin:0}
+      .gsso-verify-item{display:flex;align-items:flex-start;gap:12px;margin-bottom:12px}
+      .gsso-verify-check{font-size:18px;color:#10b981;margin-top:2px}
+      .gsso-verify-info{flex:1}
+      .gsso-verify-title{font-size:14px;font-weight:600;color:#111;margin-bottom:2px}
+      .gsso-verify-desc{font-size:12px;color:#666}
+      .gsso-stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:20px 0}
+      .gsso-stat{background:#f9f9f9;border:1px solid #e5e5e5;border-radius:10px;padding:16px;text-align:center}
+      .gsso-stat-label{font-size:10px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px}
+      .gsso-stat-value{font-size:28px;font-weight:700}
+      .gsso-contracts{margin-top:20px}
+      .gsso-contracts-title{font-size:11px;font-weight:700;color:#111;margin-bottom:12px}
+      .gsso-contract-item{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:#f9f9f9;border:1px solid #e5e5e5;border-radius:8px;margin-bottom:8px}
+      .gsso-contract-address{font-family:monospace;font-size:12px;color:#666}
+      .gsso-contract-copy{background:transparent;border:none;color:#06b6d4;cursor:pointer;font-size:14px;padding:4px}
+      .gsso-verify-link{display:inline-flex;align-items:center;gap:6px;color:#06b6d4;font-size:13px;font-weight:600;text-decoration:none}
+      .gsso-verify-link:hover{text-decoration:underline}
+      @media (max-width:640px){
+        .gsso-modal{width:95%;margin:16px}
+        .gsso-grid{grid-template-columns:1fr}
+      }
+    `;
+    document.head.appendChild(style);
+  }
+}
+
+const LOGO_SVG = `data:image/svg+xml,%3Csvg width='28' height='28' viewBox='0 0 28 28' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='28' height='28' rx='6' fill='url(%23a)'/%3E%3Cpath d='M14 7c-3.866 0-7 3.134-7 7s3.134 7 7 7 7-3.134 7-7-3.134-7-7-7zm1.313 10.5h-2.625V10h2.625v7.5z' fill='%23fff'/%3E%3Cdefs%3E%3ClinearGradient id='a' x1='0' y1='0' x2='28' y2='28'%3E%3Cstop stop-color='%23667eea'/%3E%3Cstop offset='1' stop-color='%23764ba2'/%3E%3C/linearGradient%3E%3C/defs%3E%3C/svg%3E`;
+
+const CHAINS = [
+  { id: 'all', name: 'All', icon: '' },
+  { id: 'ethereum', name: 'ETH', icon: '⟠' },
+  { id: 'solana', name: 'SOL', icon: '◎' },
+  { id: 'bitcoin', name: 'BTC', icon: '₿' },
+  { id: 'polkadot', name: 'DOT', icon: '🔴' },
+  { id: 'cardano', name: 'ADA', icon: '₳' }
+];
+
+// ============================================================================
+// COMPONENT
+// ============================================================================
 export const WalletAuthModal: React.FC<WalletAuthModalProps> = ({
   apiUrl,
+  clientId = '',
+  clientSecret = '',
   open,
   onClose,
   onAuthenticated,
   onError
 }) => {
-  const [state, setState] = useState<ConnectionState>('loading');
+  const [tab, setTab] = useState<'connect' | 'verify'>('connect');
+  const [state, setState] = useState<'loading' | 'ready' | 'signing' | 'authenticated'>('loading');
   const [wallets, setWallets] = useState<WalletInfo[]>([]);
-  const [selectedWallet, setSelectedWallet] = useState<WalletInfo | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedChain, setSelectedChain] = useState<ChainType | 'all'>('all');
-  const [showAllWallets, setShowAllWallets] = useState(false);
-  const [qrSession, setQrSession] = useState<QRSession | null>(null);
-  const [connectedAddress, setConnectedAddress] = useState<string>('');
-  const [errorMessage, setErrorMessage] = useState<string>('');
-  const [websocket, setWebsocket] = useState<WebSocket | null>(null);
-  const [backendError, setBackendError] = useState<string>('');
+  const [showAll, setShowAll] = useState(false);
+  const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState<string>('all');
+  const [qrSession, setQrSession] = useState<any>(null);
+  const [address, setAddress] = useState('');
+  const [chain, setChain] = useState<ChainType | null>(null);
+  const [token, setToken] = useState('');
+  const [api] = useState(() => new AuthApiClient(apiUrl, clientId, clientSecret));
 
   useEffect(() => {
     if (open) {
       detectWallets();
+      initQR();
     }
-    return () => {
-      if (websocket) websocket.close();
-    };
   }, [open]);
-
-  useEffect(() => {
-    if (state === 'loading' && wallets.length > 0) {
-      const installed = wallets.filter(w => w.installed);
-      if (installed.length === 1) {
-        handleConnectWallet(installed[0]);
-      } else {
-        setState('qr');
-        initQrSession();
-      }
-    }
-  }, [state, wallets]);
 
   const detectWallets = async () => {
     const detected = await WalletDetector.detectAll();
     setWallets(detected);
-    setState('loading');
+    setState('ready');
   };
 
-  const initQrSession = async () => {
+  const initQR = async () => {
     try {
-      const response = await fetch(`${apiUrl}/auth/qr/init`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({})
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Backend error: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      setQrSession({
-        sessionId: data.sessionId,
-        expiresAt: data.expiresAt,
-        status: 'pending'
-      });
-      setBackendError('');
-      connectWebSocket(data.sessionId);
-    } catch (error: any) {
-      console.error('QR init failed:', error);
-      if (error.message.includes('Failed to fetch')) {
-        setBackendError(`⚠️ Backend not running at ${apiUrl}`);
-      } else {
-        setBackendError(`⚠️ ${error.message}`);
-      }
+      const data = await api.post('/auth/qr/init', {});
+      setQrSession(data);
+    } catch (err) {
+      console.error('QR init failed:', err);
     }
   };
 
-  const connectWebSocket = (sessionId: string) => {
-    const wsUrl = apiUrl.replace('http://', 'ws://').replace('https://', 'wss://');
-    const ws = new WebSocket(`${wsUrl}/ws/auth?sessionId=${sessionId}`);
-    
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      if (data.type === 'auth_success') {
-        handleAuthSuccess(data.user.address, data.user.chainType, data.token);
-        ws.close();
-      }
-    };
-    
-    ws.onerror = () => {
-      startPolling(sessionId);
-    };
-    
-    setWebsocket(ws);
-  };
-
-  const startPolling = (sessionId: string) => {
-    const interval = setInterval(async () => {
-      try {
-        const response = await fetch(`${apiUrl}/auth/qr/status/${sessionId}`);
-        const data = await response.json();
-        
-        if (data.status === 'completed') {
-          clearInterval(interval);
-          handleAuthSuccess(data.user.address, data.user.chainType, data.token);
-        } else if (data.status === 'expired') {
-          clearInterval(interval);
-          setQrSession(null);
-        }
-      } catch (error) {
-        console.error('Polling error:', error);
-      }
-    }, 2000);
-  };
-
-  const handleConnectWallet = async (wallet: WalletInfo) => {
-    if (!wallet.installed || !wallet.provider) {
+  const handleConnect = async (wallet: WalletInfo) => {
+    if (!wallet.installed) {
       window.open(wallet.downloadUrl, '_blank');
       return;
     }
 
-    setSelectedWallet(wallet);
-    setState('connecting');
-
+    setState('signing');
+    
     try {
-      const address = await WalletConnector.connect(wallet);
-      setState('signing');
-
-      const challengeRes = await fetch(`${apiUrl}/auth/challenge`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ address, chainType: wallet.chain })
-      });
-      const { message, nonce } = await challengeRes.json();
-
-      const signature = await WalletConnector.signMessage(wallet, message);
-
-      const verifyRes = await fetch(`${apiUrl}/auth/verify`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ address, signature, nonce, chainType: wallet.chain })
-      });
-      const { authenticated, token } = await verifyRes.json();
-
-      if (authenticated && token) {
-        handleAuthSuccess(address, wallet.chain, token);
+      // Fix Phantom connection
+      let addr: string;
+      if (wallet.chain === 'solana') {
+        const provider = (window as any).phantom?.solana || (window as any).solana;
+        if (!provider) throw new Error('Phantom not found');
+        
+        try {
+          const resp = await provider.connect({ onlyIfTrusted: false });
+          addr = resp.publicKey.toString();
+        } catch (err: any) {
+          if (err.code === 4001) {
+            throw new Error('Connection rejected by user');
+          }
+          throw err;
+        }
+      } else {
+        addr = await WalletConnector.connect(wallet);
       }
-    } catch (error: any) {
-      setState('error');
-      setErrorMessage(error.message || 'Connection failed');
-      onError?.(error);
+
+      const { message, nonce } = await api.post('/auth/challenge', {
+        address: addr,
+        chainType: wallet.chain
+      });
+      
+      const sig = await WalletConnector.signMessage(wallet, message);
+      
+      const { authenticated, token: authToken } = await api.post('/auth/verify', {
+        address: addr,
+        signature: sig,
+        nonce,
+        chainType: wallet.chain
+      });
+
+      if (authenticated && authToken) {
+        setAddress(addr);
+        setChain(wallet.chain);
+        setToken(authToken);
+        setState('authenticated');
+        onAuthenticated?.(addr, wallet.chain, authToken);
+      }
+    } catch (err: any) {
+      setState('ready');
+      const errorMsg = err.message || 'Connection failed';
+      alert(`Connection failed: ${errorMsg}`);
+      onError?.(err);
     }
   };
 
-  const handleAuthSuccess = (address: string, chainType: ChainType, token: string) => {
-    setConnectedAddress(address);
-    setState('success');
-    onAuthenticated?.(address, chainType, token);
-    setTimeout(() => onClose(), 2000);
-  };
-
-  const filteredWallets = wallets.filter(w => {
-    if (selectedChain !== 'all' && w.chain !== selectedChain) return false;
-    if (searchQuery && !w.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+  const installed = wallets.filter(w => w.installed);
+  const filtered = wallets.filter(w => {
+    if (filter !== 'all' && w.chain !== filter) return false;
+    if (search && !w.name.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
-
-  const installedWallets = wallets.filter(w => w.installed);
 
   const getQRUrl = () => {
     if (!qrSession) return '';
     const mobileAuthUrl = `${window.location.origin}/mobile-auth?session=${qrSession.sessionId}`;
-    return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(mobileAuthUrl)}&color=667eea`;
+    return `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(mobileAuthUrl)}&color=667eea`;
   };
 
   if (!open) return null;
 
   return (
-    <div className="g2g-modal-overlay" onClick={onClose}>
-      <div className="g2g-modal" onClick={e => e.stopPropagation()}>
-        <button className="g2g-modal-close" onClick={onClose}>✕</button>
+    <div className="gsso-overlay" onClick={onClose}>
+      <div className="gsso-modal" onClick={e => e.stopPropagation()}>
+        <button className="gsso-close" onClick={onClose}>×</button>
 
-        <div className="g2g-modal-header">
-          <h2>Connect Wallet</h2>
-          <p>Multi-chain wallet authentication</p>
+        <div className="gsso-header">
+          <div className="gsso-logo">
+            <div className="gsso-logo-icon">G</div>
+            <h2 className="gsso-title">Go2Glory</h2>
+          </div>
+          <p className="gsso-subtitle">Multi-chain wallet authentication</p>
+          
+          <div className="gsso-tabs">
+            <button 
+              className={`gsso-tab ${tab === 'connect' ? 'active' : ''}`}
+              onClick={() => setTab('connect')}
+            >
+              🔗 Connect
+            </button>
+            <button 
+              className={`gsso-tab ${tab === 'verify' ? 'active' : ''}`}
+              onClick={() => setTab('verify')}
+            >
+              ✓ Verify
+            </button>
+          </div>
         </div>
 
-        <div className="g2g-modal-body">
-          {state === 'loading' && (
-            <div className="g2g-loading">
-              <div className="g2g-spinner"></div>
-              <p>Detecting wallets...</p>
-            </div>
-          )}
-
-          {state === 'qr' && (
+        <div className="gsso-body">
+          {tab === 'connect' && (
             <>
-              <div className="g2g-qr-section">
-                <div className="g2g-qr-wrapper">
-                  <div className="g2g-qr-code">
-                    {qrSession ? (
-                      <img 
-                        src={getQRUrl()}
-                        alt="QR Code"
-                      />
-                    ) : (
-                      <div style={{ width: '200px', height: '200px', background: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '12px' }}>
-                        <span style={{ fontSize: '14px', color: '#999' }}>Loading...</span>
-                      </div>
-                    )}
-                    <div className="g2g-qr-logo">
-                      <img src="https://via.placeholder.com/40/667eea/ffffff?text=DAO" alt="Logo" />
-                    </div>
-                  </div>
-                  <div className="g2g-qr-text">Scan with mobile camera</div>
-                  {backendError && (
-                    <div className="g2g-backend-error">{backendError}</div>
-                  )}
+              {state === 'loading' && (
+                <div className="gsso-loading">
+                  <div className="gsso-spinner"></div>
+                  <p className="gsso-loading-text">Detecting wallets...</p>
+                  <p className="gsso-loading-sub">Checking browser extensions</p>
                 </div>
-
-                <div className="g2g-ready-section">
-                  <h3>Ready to Connect</h3>
-                  {installedWallets.slice(0, 2).map(wallet => (
-                    <button
-                      key={wallet.id}
-                      className="g2g-ready-wallet"
-                      onClick={() => handleConnectWallet(wallet)}
-                    >
-                      <span className="wallet-icon">{wallet.icon}</span>
-                      <div className="wallet-info">
-                        <div className="wallet-name">{wallet.name}</div>
-                        <div className="wallet-chain">{wallet.chain}</div>
-                      </div>
-                      <span className="wallet-check">✓</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {!showAllWallets && (
-                <button 
-                  className="g2g-all-wallets-toggle"
-                  onClick={() => setShowAllWallets(true)}
-                >
-                  View All Wallets ({wallets.length})
-                </button>
               )}
 
-              {showAllWallets && (
-                <div className="g2g-all-wallets">
-                  <div className="g2g-all-wallets-header">
-                    <span className="g2g-all-wallets-title">All Wallets</span>
-                    <button 
-                      className="g2g-hide-btn"
-                      onClick={() => setShowAllWallets(false)}
-                    >
-                      Hide ▲
-                    </button>
-                  </div>
+              {(state === 'ready' || state === 'authenticated') && (
+                <>
+                  {state === 'authenticated' && (
+                    <div className="gsso-success-banner">
+                      <div className="gsso-success-icon">✓</div>
+                      <div className="gsso-success-info">
+                        <div className="gsso-success-title">Authenticated!</div>
+                        <div className="gsso-success-address">{address.substring(0, 6)}...{address.substring(address.length - 4)}</div>
+                        <span className="gsso-success-chain">● {chain?.toUpperCase()}</span>
+                      </div>
+                    </div>
+                  )}
 
-                  <div className="g2g-search">
-                    <input
-                      type="text"
-                      placeholder="Search wallets..."
-                      value={searchQuery}
-                      onChange={e => setSearchQuery(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="g2g-chain-filters">
-                    <button
-                      className={selectedChain === 'all' ? 'active' : ''}
-                      onClick={() => setSelectedChain('all')}
-                    >
-                      All Chains
-                    </button>
-                    {Object.entries(CHAIN_INFO).map(([key, info]) => (
-                      <button
-                        key={key}
-                        className={selectedChain === key ? 'active' : ''}
-                        onClick={() => setSelectedChain(key as ChainType)}
-                      >
-                        {info.icon} {info.name}
-                      </button>
-                    ))}
-                  </div>
-
-                  <div className="g2g-wallet-list">
-                    {filteredWallets.map(wallet => (
-                      <button
-                        key={wallet.id}
-                        className="g2g-wallet-item"
-                        onClick={() => handleConnectWallet(wallet)}
-                      >
-                        <span className="wallet-icon">{wallet.icon}</span>
-                        <div className="wallet-info">
-                          <div className="wallet-name">
-                            {wallet.name}
-                            {wallet.installed && <span className="installed-badge">✓</span>}
+                  <div className="gsso-grid">
+                    <div className="gsso-qr-box">
+                      <div className="gsso-qr-label">Scan QR</div>
+                      <div className="gsso-qr-code">
+                        {qrSession ? (
+                          <img src={getQRUrl()} alt="QR Code" />
+                        ) : (
+                          <div style={{ width: '160px', height: '160px', background: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px' }}>
+                            <span style={{ fontSize: '12px', color: '#999' }}>Loading...</span>
                           </div>
-                          <div className="wallet-desc">{wallet.description}</div>
+                        )}
+                        <div className="gsso-qr-logo">
+                          <img src={LOGO_SVG} alt="Logo" />
                         </div>
-                      </button>
-                    ))}
+                      </div>
+                    </div>
+
+                    <div className="gsso-ready">
+                      <h3 className="gsso-ready-title">Ready to Connect</h3>
+                      {installed.length > 0 ? (
+                        installed.slice(0, 2).map(w => (
+                          <button 
+                            key={w.id}
+                            className="gsso-wallet-card"
+                            onClick={() => handleConnect(w)}
+                            disabled={state === 'authenticated'}
+                          >
+                            <span className="gsso-wallet-icon">{w.icon}</span>
+                            <div className="gsso-wallet-info">
+                              <div className="gsso-wallet-name">{w.name}</div>
+                              <div className="gsso-wallet-chain">{w.chain}</div>
+                            </div>
+                            {state === 'authenticated' && w.chain === chain && (
+                              <span className="gsso-wallet-check">✓</span>
+                            )}
+                          </button>
+                        ))
+                      ) : (
+                        <div style={{ padding: '20px', textAlign: 'center', color: '#999', fontSize: '12px' }}>
+                          No wallets detected
+                        </div>
+                      )}
+                    </div>
                   </div>
+
+                  {!showAll && (
+                    <button 
+                      className="gsso-expand"
+                      onClick={() => setShowAll(true)}
+                    >
+                      View all supported wallets ▼
+                    </button>
+                  )}
+
+                  {showAll && (
+                    <div className="gsso-all-wallets">
+                      <div className="gsso-all-header">
+                        <span className="gsso-all-title">All Wallets</span>
+                        <button 
+                          className="gsso-hide"
+                          onClick={() => setShowAll(false)}
+                        >
+                          Hide ▲
+                        </button>
+                      </div>
+
+                      <div className="gsso-search">
+                        <input 
+                          type="text"
+                          placeholder="Search..."
+                          value={search}
+                          onChange={e => setSearch(e.target.value)}
+                        />
+                      </div>
+
+                      <div className="gsso-filters">
+                        {CHAINS.map(c => (
+                          <button
+                            key={c.id}
+                            className={`gsso-filter ${filter === c.id ? 'active' : ''}`}
+                            onClick={() => setFilter(c.id)}
+                          >
+                            {c.icon} {c.name}
+                          </button>
+                        ))}
+                      </div>
+
+                      <div className="gsso-wallet-list">
+                        {filtered.map(w => (
+                          <button
+                            key={w.id}
+                            className="gsso-wallet-item"
+                            onClick={() => handleConnect(w)}
+                          >
+                            <span className="gsso-wallet-icon">{w.icon}</span>
+                            <div className="gsso-wallet-info">
+                              <div className="gsso-wallet-name">
+                                {w.name}
+                                {w.installed && <span className="gsso-installed">✓</span>}
+                              </div>
+                              <div className="gsso-wallet-desc">{w.description}</div>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {state === 'signing' && (
+                <div className="gsso-loading">
+                  <div className="gsso-spinner"></div>
+                  <p className="gsso-loading-text">Sign the message...</p>
+                  <p className="gsso-loading-sub">Please approve in your wallet</p>
                 </div>
               )}
             </>
           )}
 
-          {state === 'connecting' && (
-            <div className="g2g-loading">
-              <div className="g2g-spinner"></div>
-              <p>Connecting to {selectedWallet?.name}...</p>
-            </div>
-          )}
+          {tab === 'verify' && (
+            <div>
+              <div className="gsso-verify-item">
+                <span className="gsso-verify-check">✓</span>
+                <div className="gsso-verify-info">
+                  <div className="gsso-verify-title">ENS Ownership</div>
+                  <div className="gsso-verify-desc">Contra_e053</div>
+                </div>
+              </div>
+              
+              <div className="gsso-verify-item">
+                <span className="gsso-verify-check">✓</span>
+                <div className="gsso-verify-info">
+                  <div className="gsso-verify-title">Contract Verified</div>
+                  <div className="gsso-verify-desc">Matches go2glory.eth</div>
+                </div>
+              </div>
+              
+              <div className="gsso-verify-item">
+                <span className="gsso-verify-check">✓</span>
+                <div className="gsso-verify-info">
+                  <div className="gsso-verify-title">Contract Age</div>
+                  <div className="gsso-verify-desc">62 days</div>
+                </div>
+              </div>
 
-          {state === 'signing' && (
-            <div className="g2g-loading">
-              <div className="g2g-spinner"></div>
-              <p>Please sign the message in {selectedWallet?.name}...</p>
-            </div>
-          )}
+              <div className="gsso-stats">
+                <div className="gsso-stat">
+                  <div className="gsso-stat-label">Total</div>
+                  <div className="gsso-stat-value" style={{ color: '#06b6d4' }}>7</div>
+                </div>
+                
+                <div className="gsso-stat">
+                  <div className="gsso-stat-label">Success</div>
+                  <div className="gsso-stat-value" style={{ color: '#10b981' }}>100%</div>
+                </div>
+                
+                <div className="gsso-stat">
+                  <div className="gsso-stat-label">Uptime</div>
+                  <div className="gsso-stat-value" style={{ color: '#10b981' }}>99.9%</div>
+                </div>
+                
+                <div className="gsso-stat">
+                  <div className="gsso-stat-label">Sites</div>
+                  <div className="gsso-stat-value" style={{ color: '#06b6d4' }}>2</div>
+                </div>
+              </div>
 
-          {state === 'success' && (
-            <div className="g2g-success">
-              <div className="success-icon">✓</div>
-              <h3>Connected!</h3>
-              <p className="success-address">{connectedAddress}</p>
-            </div>
-          )}
+              <div className="gsso-contracts">
+                <div className="gsso-contracts-title">Contracts</div>
+                
+                <div className="gsso-contract-item">
+                  <span className="gsso-contract-address">0xa9e5...8190</span>
+                  <button className="gsso-contract-copy">📋</button>
+                </div>
+                
+                <div className="gsso-contract-item">
+                  <span className="gsso-contract-address">0xFe96...4c4C</span>
+                  <button className="gsso-contract-copy">📋</button>
+                </div>
 
-          {state === 'error' && (
-            <div className="g2g-error">
-              <div className="error-icon">✕</div>
-              <h3>Connection Failed</h3>
-              <p>{errorMessage}</p>
-              <button onClick={() => setState('qr')}>Try Again</button>
+                <a 
+                  href="https://etherscan.io/address/0xa9e5" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="gsso-verify-link"
+                >
+                  🔍 Verify on Etherscan ↗
+                </a>
+              </div>
             </div>
           )}
+        </div>
+
+        <div className="gsso-footer">
+          Protected by <a href="https://go2glory.eth" target="_blank" rel="noopener noreferrer">go2glory.eth</a>
         </div>
       </div>
     </div>

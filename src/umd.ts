@@ -1,10 +1,12 @@
 // src/umd.ts - UMD entry point for browser <script> tags
 
-// Import everything
-import { GSSO } from './core/GSSO';
+// Core SDK
+import { G2GDAO as GSSO } from './core/G2GDAO';
 import { ApiClient } from './core/ApiClient';
 import { WalletDetector } from './core/WalletDetector';
 import { WalletConnector } from './core/WalletConnector';
+
+// React Components
 import { ConnectWallet } from './components/ConnectWallet';
 import { WalletAuthModal } from './components/WalletAuthModal';
 import { MobileAuth } from './components/MobileAuth';
@@ -17,14 +19,13 @@ const GSSO_SDK = {
   WalletDetector,
   WalletConnector,
   
-  // React components (for UMD usage)
+  // React components for browser usage
   ConnectWallet,
   WalletAuthModal,
   MobileAuth,
   
-  // Legacy alias (if anyone was using G2GDAO)
+  // Legacy alias (backward compatibility)
   G2GDAO: GSSO
 };
 
-// Export ONLY default for UMD
 export default GSSO_SDK;

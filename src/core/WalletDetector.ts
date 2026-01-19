@@ -152,18 +152,25 @@ export class WalletDetector {
   }
 
   private static getProvider(providerKey: string): any {
-    if (typeof window === 'undefined') return null;
-    
-    const keys = providerKey.split('.');
-    let obj: any = window;
-    
-    for (const key of keys) {
-      if (!obj || !obj[key]) return null;
-      obj = obj[key];
-    }
-    
-    return obj;
+  if (typeof window === 'undefined') return null;
+  
+  const keys = providerKey.split('.');
+  let obj: any = window;
+  
+  // Special case: single-level provider like 'unisat'
+  if (keys.length === 1) {
+    return obj[keys[0]];  // Return window.unisat directly
   }
+  
+  // Multi-level: stop BEFORE the last key
+  // For 'ethereum.isMetaMask' → walk to 'ethereum', return window.ethereum
+  for (let i = 0; i < keys.length - 1; i++) {
+    if (!obj || !obj[keys[i]]) return null;
+    obj = obj[keys[i]];
+  }
+  
+  return obj;
+}
 
   static async detectAll(enabledChains?: ChainType[]): Promise<WalletInfo[]> {
     const wallets: WalletInfo[] = [];

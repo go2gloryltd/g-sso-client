@@ -530,9 +530,9 @@ MIT © G-SSO Team
 ## 🤝 Support
 
 - 📧 Email: support@g-sso.com
-- 📖 Documentation: https://docs.g-sso.com
+- 📖 Documentation: https://g-sso.com/docs
 - 💬 Discord: https://discord.gg/gsso
-- 🐛 Issues: https://github.com/gsso/sdk/issues
+- 🐛 Issues: https://github.com/go2gloryltd/g-sso/issues
 
 ---
 

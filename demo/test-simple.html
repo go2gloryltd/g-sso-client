@@ -3,33 +3,30 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>G2GDAO SDK Test - Simple</title>
+  <title>G-SSO Final Test</title>
   
-  <!-- React (Production) -->
+  <!-- React -->
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  
-  <!-- Your SDK Bundle -->
-  <script src="../dist/g2gdao.bundle.js"></script>
   
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
       padding: 20px;
-    }
-    .demo-container {
-      text-align: center;
       color: white;
-      max-width: 600px;
+    }
+    .container {
+      text-align: center;
+      max-width: 800px;
       width: 100%;
     }
-    .demo-container h1 {
+    h1 {
       font-size: 48px;
       margin-bottom: 16px;
       background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);
@@ -37,77 +34,88 @@
       -webkit-text-fill-color: transparent;
       background-clip: text;
     }
-    .demo-container p {
-      font-size: 18px;
-      color: #cbd5e1;
-      margin-bottom: 32px;
-    }
-    .user-info {
-      margin-top: 32px;
+    .status-box {
+      background: rgba(0,0,0,0.3);
       padding: 24px;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 12px;
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 16px;
+      margin: 24px 0;
+      text-align: left;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      line-height: 1.6;
     }
-    .user-info h3 {
-      margin-bottom: 16px;
-      color: #06b6d4;
-      font-size: 20px;
+    .status-item {
+      margin: 8px 0;
+      display: flex;
+      align-items: center;
+    }
+    .status-icon {
+      margin-right: 8px;
+      font-size: 16px;
+    }
+    .error {
+      background: rgba(239,68,68,0.2);
+      border: 2px solid #ef4444;
+    }
+    .success {
+      background: rgba(16,185,129,0.2);
+      border: 2px solid #10b981;
+    }
+    .warning {
+      background: rgba(251,191,36,0.2);
+      border: 2px solid #fbbf24;
+    }
+    .user-box {
+      background: rgba(16,185,129,0.2);
+      border: 2px solid #10b981;
+      padding: 20px;
+      border-radius: 12px;
+      margin: 20px 0;
     }
     .user-detail {
       margin: 12px 0;
       text-align: left;
     }
     .user-detail strong {
-      color: #94a3b8;
       display: block;
-      font-size: 12px;
+      font-size: 11px;
       text-transform: uppercase;
-      margin-bottom: 4px;
+      color: #10b981;
+      margin-bottom: 6px;
     }
     .user-address {
-      font-family: 'Courier New', monospace;
-      font-size: 14px;
-      color: #e2e8f0;
-      word-break: break-all;
-      background: rgba(0, 0, 0, 0.3);
-      padding: 8px;
+      font-family: monospace;
+      font-size: 12px;
+      padding: 10px;
+      background: rgba(0,0,0,0.3);
       border-radius: 6px;
+      word-break: break-all;
     }
-    .chain-badge {
-      display: inline-block;
-      padding: 4px 12px;
-      background: rgba(6, 182, 212, 0.2);
-      color: #06b6d4;
-      border-radius: 20px;
-      font-size: 13px;
+    button {
+      padding: 14px 32px;
+      background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
       font-weight: 600;
-      text-transform: uppercase;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(6,182,212,0.3);
+      transition: all 0.2s;
+      margin: 8px;
+    }
+    button:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(6,182,212,0.4);
+    }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
     }
     .disconnect-btn {
-      margin-top: 20px;
-      padding: 10px 24px;
-      font-size: 14px;
-      font-weight: 600;
+      background: rgba(239,68,68,0.2);
+      border: 2px solid #ef4444;
       color: #ef4444;
-      background: rgba(239, 68, 68, 0.1);
-      border: 1px solid #ef4444;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    .disconnect-btn:hover {
-      background: rgba(239, 68, 68, 0.2);
-    }
-    .debug-info {
-      margin-top: 20px;
-      padding: 12px;
-      background: rgba(0, 0, 0, 0.3);
-      border-radius: 8px;
-      font-size: 12px;
-      text-align: left;
-      color: #94a3b8;
     }
   </style>
 </head>
@@ -115,28 +123,88 @@
   <div id="root"></div>
 
   <script>
-    // Debug: Check what's available
-    console.log('=== G2GDAO SDK Debug ===');
-    console.log('window.G2GDAO:', window.G2GDAO);
-    console.log('Available exports:', Object.keys(window.G2GDAO || {}));
+    console.log('=== G-SSO SDK Final Test ===');
+    console.log('Step 1: Checking React...');
+    console.log('React:', typeof React !== 'undefined' ? '✅' : '❌');
+    console.log('ReactDOM:', typeof ReactDOM !== 'undefined' ? '✅' : '❌');
+  </script>
 
-    const { useState, useEffect } = React;
+  <!-- Load SDK -->
+  <script src="../dist/gsso.umd.js"></script>
+
+  <script>
+    console.log('Step 2: Checking SDK loaded...');
+    console.log('window.GSSO:', window.GSSO);
+    console.log('Type of GSSO:', typeof window.GSSO);
     
-    // Get ConnectWallet component from SDK
-    const ConnectWallet = window.G2GDAO?.ConnectWallet;
+    if (window.GSSO) {
+      console.log('Available exports:', Object.keys(window.GSSO));
+      console.log('ConnectWallet:', window.GSSO.ConnectWallet);
+      console.log('GSSO class:', window.GSSO.GSSO);
+    }
+
+    const { useState } = React;
 
     function App() {
       const [user, setUser] = useState(null);
+      const [loading, setLoading] = useState(false);
 
-      // Check if SDK loaded correctly
-      useEffect(() => {
-        if (!ConnectWallet) {
-          console.error('❌ ConnectWallet not found in window.G2GDAO');
-          console.log('Available:', window.G2GDAO);
-        } else {
-          console.log('✅ SDK loaded successfully');
-        }
-      }, []);
+      // Debug info
+      const sdkLoaded = typeof window.GSSO !== 'undefined';
+      const sdkType = typeof window.GSSO;
+      const sdkKeys = window.GSSO ? Object.keys(window.GSSO) : [];
+      const hasConnectWallet = window.GSSO && window.GSSO.ConnectWallet;
+
+      // If SDK not loaded or empty
+      if (!sdkLoaded || !window.GSSO || (Array.isArray(window.GSSO) && window.GSSO.length === 0)) {
+        return React.createElement('div', { className: 'container' },
+          React.createElement('h1', null, '❌ SDK Not Loaded'),
+          React.createElement('div', { className: 'status-box error' },
+            React.createElement('div', { className: 'status-item' },
+              React.createElement('span', { className: 'status-icon' }, '❌'),
+              'window.GSSO: ' + (sdkLoaded ? 'exists but empty/invalid' : 'undefined')
+            ),
+            React.createElement('div', { className: 'status-item' },
+              React.createElement('span', { className: 'status-icon' }, '📋'),
+              'Type: ' + sdkType
+            ),
+            React.createElement('div', { className: 'status-item' },
+              React.createElement('span', { className: 'status-icon' }, '🔑'),
+              'Keys: ' + JSON.stringify(sdkKeys)
+            )
+          ),
+          React.createElement('div', { className: 'status-box warning', style: { marginTop: '20px' } },
+            React.createElement('strong', { style: { display: 'block', marginBottom: '12px' } }, '🔧 How to Fix:'),
+            React.createElement('div', null, '1. Check dist/gsso.umd.js exists'),
+            React.createElement('div', null, '2. Rebuild: npm run build'),
+            React.createElement('div', null, '3. Update src/index.ts exports'),
+            React.createElement('div', null, '4. Reload this page')
+          )
+        );
+      }
+
+      // If no ConnectWallet component
+      if (!hasConnectWallet) {
+        return React.createElement('div', { className: 'container' },
+          React.createElement('h1', null, '⚠️ ConnectWallet Missing'),
+          React.createElement('div', { className: 'status-box warning' },
+            React.createElement('div', { className: 'status-item' },
+              React.createElement('span', { className: 'status-icon' }, '✅'),
+              'SDK loaded: Yes'
+            ),
+            React.createElement('div', { className: 'status-item' },
+              React.createElement('span', { className: 'status-icon' }, '❌'),
+              'ConnectWallet: Not found'
+            ),
+            React.createElement('div', { className: 'status-item' },
+              React.createElement('span', { className: 'status-icon' }, '📋'),
+              'Available: ' + sdkKeys.join(', ')
+            )
+          )
+        );
+      }
+
+      const ConnectWallet = window.GSSO.ConnectWallet;
 
       const handleConnect = (result) => {
         console.log('✅ Connected:', result);
@@ -145,71 +213,102 @@
           chainType: result.chainType,
           token: result.token
         });
-        localStorage.setItem('g2gdao_token', result.token);
+        setLoading(false);
       };
 
       const handleError = (error) => {
         console.error('❌ Connection error:', error);
         alert('Connection failed: ' + error.message);
+        setLoading(false);
       };
 
       const handleDisconnect = () => {
         setUser(null);
-        localStorage.removeItem('g2gdao_token');
-        console.log('👋 Disconnected');
+        setLoading(false);
       };
 
-      // If SDK not loaded, show error
-      if (!ConnectWallet) {
-        return React.createElement('div', { className: 'demo-container' },
-          React.createElement('h1', null, '⚠️ SDK Not Loaded'),
-          React.createElement('p', null, 'Check console for details'),
-          React.createElement('div', { className: 'debug-info' },
-            React.createElement('pre', null, 
-              'window.G2GDAO: ' + JSON.stringify(Object.keys(window.G2GDAO || {}), null, 2)
-            )
+      if (user) {
+        return React.createElement('div', { className: 'container' },
+          React.createElement('h1', null, '🔐 G-SSO SDK'),
+          React.createElement('div', { className: 'user-box' },
+            React.createElement('h2', { style: { marginBottom: '20px', fontSize: '24px', color: '#10b981' } }, '✅ Connected!'),
+            React.createElement('div', { className: 'user-detail' },
+              React.createElement('strong', null, 'Wallet Address'),
+              React.createElement('div', { className: 'user-address' }, user.address)
+            ),
+            React.createElement('div', { className: 'user-detail' },
+              React.createElement('strong', null, 'Chain'),
+              React.createElement('div', { 
+                style: { 
+                  display: 'inline-block',
+                  padding: '6px 16px',
+                  background: 'rgba(6,182,212,0.2)',
+                  border: '1px solid #06b6d4',
+                  borderRadius: '20px',
+                  fontSize: '14px',
+                  textTransform: 'uppercase',
+                  fontWeight: '600'
+                } 
+              }, user.chainType)
+            ),
+            React.createElement('button', {
+              className: 'disconnect-btn',
+              onClick: handleDisconnect
+            }, 'Disconnect')
           )
         );
       }
 
-      return React.createElement('div', { className: 'demo-container' },
-        React.createElement('h1', null, '🔐 G2GDAO SDK Test'),
-        React.createElement('p', null, 'Multi-chain wallet authentication'),
+      return React.createElement('div', { className: 'container' },
+        React.createElement('h1', null, '🔐 G-SSO SDK'),
+        React.createElement('p', { style: { fontSize: '18px', marginBottom: '24px' } }, 
+          'Multi-chain wallet authentication'
+        ),
+        
+        React.createElement('div', { className: 'status-box success' },
+          React.createElement('div', { className: 'status-item' },
+            React.createElement('span', { className: 'status-icon' }, '✅'),
+            'SDK Status: Loaded'
+          ),
+          React.createElement('div', { className: 'status-item' },
+            React.createElement('span', { className: 'status-icon' }, '✅'),
+            'ConnectWallet: Available'
+          ),
+          React.createElement('div', { className: 'status-item' },
+            React.createElement('span', { className: 'status-icon' }, '🌐'),
+            'Backend: http://localhost:3001'
+          )
+        ),
 
-        !user 
-          ? React.createElement(ConnectWallet, {
-              apiUrl: 'http://localhost:3001',
-              buttonText: 'Connect Wallet',
-              onConnect: handleConnect,
-              onError: handleError
-            })
-          : React.createElement('div', { className: 'user-info' },
-              React.createElement('h3', null, '✅ Connected'),
-              React.createElement('div', { className: 'user-detail' },
-                React.createElement('strong', null, 'Wallet Address'),
-                React.createElement('div', { className: 'user-address' }, user.address)
-              ),
-              React.createElement('div', { className: 'user-detail' },
-                React.createElement('strong', null, 'Chain'),
-                React.createElement('span', { className: 'chain-badge' }, user.chainType)
-              ),
-              React.createElement('div', { className: 'user-detail' },
-                React.createElement('strong', null, 'Token'),
-                React.createElement('div', { className: 'user-address' }, 
-                  user.token.substring(0, 50) + '...'
-                )
-              ),
-              React.createElement('button', {
-                className: 'disconnect-btn',
-                onClick: handleDisconnect
-              }, 'Disconnect')
-            )
+        React.createElement(ConnectWallet, {
+          apiUrl: 'http://localhost:3001',
+          buttonText: loading ? 'Connecting...' : 'Connect Wallet',
+          onConnect: handleConnect,
+          onError: handleError
+        }),
+
+        React.createElement('div', { className: 'status-box', style: { marginTop: '20px', fontSize: '11px' } },
+          React.createElement('div', null, '💡 Make sure your backend is running on port 3001'),
+          React.createElement('div', null, '📱 Click "Connect Wallet" to open the modal'),
+          React.createElement('div', null, '🔐 Select a wallet to authenticate')
+        )
       );
     }
 
-    // Render app
-    const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(React.createElement(App));
+    // Render
+    try {
+      const root = ReactDOM.createRoot(document.getElementById('root'));
+      root.render(React.createElement(App));
+      console.log('✅ App rendered successfully');
+    } catch (error) {
+      console.error('❌ Render error:', error);
+      document.getElementById('root').innerHTML = `
+        <div style="text-align: center; color: white; padding: 40px;">
+          <h1>❌ Render Error</h1>
+          <p style="margin-top: 20px;">${error.message}</p>
+        </div>
+      `;
+    }
   </script>
 </body>
 </html>

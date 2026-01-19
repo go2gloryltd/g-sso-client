@@ -3,57 +3,94 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mobile Auth - G2GDAO</title>
+  <title>Mobile Auth - G-SSO</title>
   
   <!-- React (Production) -->
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   
-  <!-- Your SDK Bundle -->
-  <script src="../dist/g2gdao.bundle.js"></script>
+  <!-- G-SSO SDK Bundle -->
+  <script src="../dist/gsso.umd.js"></script>
 </head>
 <body>
   <div id="root"></div>
 
   <script>
-    // Debug
+    // Debug logging
     console.log('=== Mobile Auth Page ===');
-    console.log('Available SDK exports:', Object.keys(window.G2GDAO || {}));
+    console.log('window.GSSO:', window.GSSO);
+    console.log('Available SDK exports:', Object.keys(window.GSSO || {}));
     
     // Get MobileAuth component
-    const MobileAuth = window.G2GDAO?.MobileAuth;
+    const MobileAuth = window.GSSO?.MobileAuth;
 
     function App() {
+      if (!window.GSSO) {
+        return React.createElement('div', { 
+          style: { 
+            padding: '40px', 
+            textAlign: 'center',
+            fontFamily: 'sans-serif',
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            minHeight: '100vh',
+            color: 'white'
+          } 
+        },
+          React.createElement('h1', null, '⚠️ G-SSO SDK Not Loaded'),
+          React.createElement('p', null, 'Check if dist/gsso.umd.js exists'),
+          React.createElement('pre', { 
+            style: { 
+              background: 'rgba(0,0,0,0.3)', 
+              padding: '20px', 
+              marginTop: '20px',
+              textAlign: 'left',
+              borderRadius: '12px',
+              fontSize: '12px'
+            } 
+          }, 
+            'window.GSSO: ' + (window.GSSO ? 'exists' : 'not found')
+          )
+        );
+      }
+
       if (!MobileAuth) {
         return React.createElement('div', { 
           style: { 
             padding: '40px', 
             textAlign: 'center',
-            fontFamily: 'sans-serif' 
+            fontFamily: 'sans-serif',
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            minHeight: '100vh',
+            color: 'white'
           } 
         },
-          React.createElement('h1', null, '⚠️ MobileAuth component not found'),
-          React.createElement('p', null, 'Check if SDK is built correctly'),
+          React.createElement('h1', null, '⚠️ MobileAuth Component Not Found'),
+          React.createElement('p', null, 'Available exports:'),
           React.createElement('pre', { 
             style: { 
-              background: '#f0f0f0', 
+              background: 'rgba(0,0,0,0.3)', 
               padding: '20px', 
               marginTop: '20px',
-              textAlign: 'left'
+              textAlign: 'left',
+              borderRadius: '12px',
+              fontSize: '12px'
             } 
           }, 
-            JSON.stringify(Object.keys(window.G2GDAO || {}), null, 2)
+            JSON.stringify(Object.keys(window.GSSO || {}), null, 2)
           )
         );
       }
 
       return React.createElement(MobileAuth, {
         apiUrl: 'http://localhost:3001',
+        logoUrl: 'https://via.placeholder.com/80/667eea/ffffff?text=G-SSO',
         onSuccess: (address, chainType) => {
           console.log('✅ Mobile auth success:', { address, chainType });
+          alert(`Success! Connected ${address} on ${chainType}`);
         },
         onError: (error) => {
           console.error('❌ Mobile auth error:', error);
+          alert('Authentication failed: ' + error.message);
         }
       });
     }

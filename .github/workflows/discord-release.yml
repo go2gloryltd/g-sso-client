@@ -1,0 +1,37 @@
+name: Discord Release Notification
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  notify-discord:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send to Discord
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_RELEASES }}
+        run: |
+          curl -H "Content-Type: application/json" \
+          -X POST \
+          -d "{
+            \"content\": \"@everyone\",
+            \"embeds\": [{
+              \"title\": \"🎉 New G-SSO Release: ${{ github.event.release.tag_name }}\",
+              \"description\": \"${{ github.event.release.body }}\",
+              \"url\": \"${{ github.event.release.html_url }}\",
+              \"color\": 5793266,
+              \"fields\": [
+                {
+                  \"name\": \"Download\",
+                  \"value\": \"[View Release](${{ github.event.release.html_url }})\"
+                },
+                {
+                  \"name\": \"NPM Package\",
+                  \"value\": \"[\`npm install g-sso\`](https://npmjs.com/package/g-sso)\"
+                }
+              ],
+              \"timestamp\": \"${{ github.event.release.published_at }}\"
+            }]
+          }" \
+          $DISCORD_WEBHOOK
